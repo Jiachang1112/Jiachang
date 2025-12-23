@@ -1,5 +1,4 @@
-// ⚙️ 這是一個設定檔，你可以在這裡修改網站的內容
-// 只要改引號 "" 裡面的文字即可，其他符號不要動
+// ⚙️ 網站內容設定檔 (支援資料夾版)
 
 const CONFIG = {
     // 1. 網頁標題
@@ -9,29 +8,56 @@ const CONFIG = {
     password: "Jiachang",
 
     // 3. 歡迎文字
-    introText: "歡迎回來，請點擊下方連結下載或查看檔案：",
+    introText: "歡迎回來，請點擊資料夾開啟查看檔案：",
 
-    // 4. 檔案列表 (想加新檔案，就複製一行 {...}, )
-    files: [
+    // 4. 檔案與資料夾清單
+    items: [
+        // --- 範例：這是一個單獨的檔案 (沒有放在資料夾裡) ---
         {
-            name: "第一章：課程大綱與簡介",
-            path: "file/你的檔案名稱1.pdf", // 這裡打你的檔案路徑
-            note: "2024/05/20 更新 | PDF 文件",
-            icon: "📄" // 可以選：📄, 🖼️, 🎥, 🔗
-        },
-        {
-            name: "第二章：補充教材圖片",
-            path: "file/你的檔案名稱2.jpg",
-            note: "重點圖表說明",
-            icon: "🖼️"
-        },
-        // --- 想要新增檔案，請複製下面這一段貼上 ---
-        {
-            name: "新的檔案標題",
-            path: "file/新檔案.pdf",
-            note: "這是新的備註",
+            type: "file",  // 設定為檔案
+            name: "課程總大綱.pdf",
+            path: "file/syllabus.pdf",
+            note: "全學期適用",
             icon: "📄"
         },
-        // ---------------------------------------
+
+        // --- 範例：這是一個資料夾 (裡面放檔案) ---
+        {
+            type: "folder", // 設定為資料夾
+            name: "第一章：基礎觀念",
+            isOpen: true,   // 預設是否展開 (true=展開, false=收合)
+            children: [     // children 裡面放這個資料夾的檔案
+                {
+                    type: "file",
+                    name: "1-1 基礎教學講義",
+                    path: "file/ch1-1.pdf",
+                    note: "必讀教材",
+                    icon: "📄"
+                },
+                {
+                    type: "file",
+                    name: "1-2 補充圖片",
+                    path: "file/img01.jpg",
+                    note: "參考用",
+                    icon: "🖼️"
+                }
+            ]
+        },
+
+        // --- 範例：這是第二個資料夾 ---
+        {
+            type: "folder",
+            name: "第二章：進階應用",
+            isOpen: false, // 預設收起來
+            children: [
+                {
+                    type: "file",
+                    name: "2-1 進階講義",
+                    path: "file/ch2-1.pdf",
+                    note: "難度較高",
+                    icon: "📄"
+                }
+            ]
+        }
     ]
 };
