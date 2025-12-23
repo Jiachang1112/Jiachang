@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>我的教學檔案庫</title>
     <style>
+        /* 網頁基本樣式 */
         body { font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; max-width: 800px; margin: 40px auto; padding: 0 20px; line-height: 1.6; color: #333; }
         h1 { border-bottom: 2px solid #eaecef; padding-bottom: 10px; }
         .file-list { list-style: none; padding: 0; }
@@ -12,25 +13,81 @@
         .file-list a { text-decoration: none; color: #0366d6; font-size: 18px; font-weight: bold; }
         .file-list a:hover { text-decoration: underline; }
         .note { color: #666; font-size: 14px; margin-top: 5px; }
+
+        /* --- 密碼鎖定畫面樣式 --- */
+        #login-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #f4f4f4; z-index: 9999;
+            display: flex; justify-content: center; align-items: center; flex-direction: column;
+        }
+        .login-box {
+            background: white; padding: 30px; border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.1); text-align: center;
+        }
+        input[type="password"] {
+            padding: 10px; font-size: 16px; border: 1px solid #ccc; border-radius: 5px; margin-top: 10px;
+        }
+        button {
+            padding: 10px 20px; font-size: 16px; background-color: #0366d6; color: white;
+            border: none; border-radius: 5px; cursor: pointer; margin-top: 10px;
+        }
+        button:hover { background-color: #024ea2; }
+        #error-msg { color: red; margin-top: 10px; display: none; }
     </style>
 </head>
 <body>
 
-    <h1>📂 我的教學資源下載</h1>
-    <p>點擊下方連結即可開啟或下載檔案：</p>
+    <div id="login-overlay">
+        <div class="login-box">
+            <h2>🔒 請輸入密碼</h2>
+            <p>本區域僅供內部教學使用</p>
+            <input type="password" id="passwordInput" placeholder="輸入通關密語">
+            <br>
+            <button onclick="checkPassword()">進入</button>
+            <p id="error-msg">密碼錯誤，請再試一次。</p>
+        </div>
+    </div>
 
-    <ul class="file-list">
-        <li>
-            <a href="你的檔案名稱1.pdf" target="_blank">📄 課程大綱 (範例)</a>
-            <div class="note">2024/05/20 更新</div>
-        </li>
+    <div id="content">
+        <h1>📂 我的教學資源下載</h1>
+        <p>歡迎回來，請點擊下方連結下載檔案：</p>
 
-        <li>
-            <a href="你的檔案名稱2.jpg" target="_blank">🖼️ 補充教材圖片 (範例)</a>
-            <div class="note">第二章補充</div>
-        </li>
+        <ul class="file-list">
+            <li>
+                <a href="你的檔案名稱1.pdf" target="_blank">📄 課程大綱 (範例)</a>
+                <div class="note">2024/05/20 更新</div>
+            </li>
+
+            <li>
+                <a href="你的檔案名稱2.jpg" target="_blank">🖼️ 補充教材圖片 (範例)</a>
+                <div class="note">第二章補充</div>
+            </li>
 
         </ul>
+    </div>
+
+    <script>
+        // 這裡設定你的密碼
+        var correctPassword = "Jiachang"; 
+
+        function checkPassword() {
+            var input = document.getElementById("passwordInput").value;
+            if (input === correctPassword) {
+                // 密碼對了，把遮罩隱藏起來
+                document.getElementById("login-overlay").style.display = "none";
+            } else {
+                // 密碼錯了，顯示錯誤訊息
+                document.getElementById("error-msg").style.display = "block";
+            }
+        }
+
+        // 讓使用者按 Enter 也能送出
+        document.getElementById("passwordInput").addEventListener("keypress", function(event) {
+            if (event.key === "Enter") {
+                checkPassword();
+            }
+        });
+    </script>
 
 </body>
 </html>
