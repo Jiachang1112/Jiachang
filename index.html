@@ -6,19 +6,43 @@
     <title>教學資源庫</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
     <style>
+        /* --- 基礎設定 --- */
         body { font-family: 'Noto Sans TC', sans-serif; background-color: #f0f2f5; margin: 0; padding: 40px 20px; color: #333; line-height: 1.6; }
         .container { max-width: 800px; margin: 0 auto; background: #fff; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); }
         h1 { color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 15px; margin-top: 0; font-weight: 700; }
         .intro { color: #666; margin-bottom: 30px; }
-        .file-list { list-style: none; padding: 0; }
-        .file-item { display: flex; align-items: center; padding: 15px; border: 1px solid #eee; border-radius: 8px; margin-bottom: 15px; transition: all 0.3s ease; background: #fff; }
-        .file-item:hover { border-color: #3498db; box-shadow: 0 2px 8px rgba(52, 152, 219, 0.15); transform: translateY(-2px); }
-        .file-icon { font-size: 32px; margin-right: 15px; color: #3498db; }
-        .file-info { flex-grow: 1; }
-        .file-link { text-decoration: none; color: #2c3e50; font-size: 18px; font-weight: 700; display: block; margin-bottom: 5px; cursor: pointer; }
-        .file-link:hover { color: #3498db; }
-        .file-note { color: #888; font-size: 14px; }
         
+        /* --- 列表樣式 --- */
+        ul { list-style: none; padding: 0; margin: 0; }
+        
+        /* 檔案卡片 */
+        .item-row { display: flex; align-items: center; padding: 12px 15px; border: 1px solid #eee; border-radius: 8px; margin-bottom: 10px; background: #fff; transition: all 0.2s; }
+        .item-row:hover { border-color: #3498db; box-shadow: 0 2px 8px rgba(52, 152, 219, 0.1); transform: translateX(5px); }
+        .file-icon { font-size: 24px; margin-right: 15px; min-width: 30px; text-align: center; }
+        .file-info { flex-grow: 1; }
+        .file-link { text-decoration: none; color: #2c3e50; font-size: 16px; font-weight: 700; display: block; cursor: pointer; }
+        .file-link:hover { color: #3498db; }
+        .file-note { color: #888; font-size: 13px; margin-top: 2px; }
+
+        /* 資料夾樣式 */
+        .folder-group { margin-bottom: 10px; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden; }
+        .folder-header { 
+            background-color: #f8f9fa; padding: 15px; cursor: pointer; display: flex; align-items: center; font-weight: bold; color: #2c3e50; 
+            transition: background 0.2s; user-select: none;
+        }
+        .folder-header:hover { background-color: #eef2f7; }
+        .folder-icon { font-size: 24px; margin-right: 12px; }
+        .folder-arrow { margin-left: auto; transition: transform 0.3s; color: #999; }
+        .folder-content { 
+            display: none; /* 預設隱藏 */
+            padding: 15px; background-color: #fff; border-top: 1px solid #eee; 
+        }
+        
+        /* 資料夾展開時的狀態 */
+        .folder-group.open .folder-content { display: block; }
+        .folder-group.open .folder-arrow { transform: rotate(180deg); }
+        .folder-group.open .folder-header { background-color: #e8f4fd; color: #0366d6; }
+
         /* 登入畫面 */
         #login-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #f0f2f5; z-index: 9999; display: flex; justify-content: center; align-items: center; flex-direction: column; }
         .login-box { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); text-align: center; max-width: 400px; width: 100%; }
@@ -46,34 +70,77 @@
     <div id="content" class="container">
         <h1 id="page-title"><span>📂</span>載入中...</h1>
         <p class="intro" id="intro-text">...</p>
-        <ul class="file-list" id="file-list-container">
-            </ul>
+        <div id="list-root"></div>
     </div>
 
     <script src="config.js"></script>
 
     <script>
-        // 1. 初始化網頁內容
+        // 初始化
         document.title = CONFIG.pageTitle;
-        document.getElementById("page-title").innerHTML = "<span>📂</span>" + CONFIG.pageTitle;
+        document.getElementById("page-title").innerHTML = "<span>📂</span> " + CONFIG.pageTitle;
         document.getElementById("intro-text").innerText = CONFIG.introText;
 
-        // 2. 產生檔案列表
-        const listContainer = document.getElementById("file-list-container");
-        CONFIG.files.forEach(file => {
-            const li = document.createElement("li");
-            li.className = "file-item";
-            li.innerHTML = `
-                <div class="file-icon">${file.icon}</div>
-                <div class="file-info">
-                    <a href="${file.path}" target="_blank" class="file-link">${file.name}</a>
-                    <div class="file-note">${file.note}</div>
-                </div>
-            `;
-            listContainer.appendChild(li);
-        });
+        const listRoot = document.getElementById("list-root");
 
-        // 3. 密碼檢查功能
+        // 渲染函數：負責決定要畫出檔案還是資料夾
+        function renderItems(items, container) {
+            items.forEach(item => {
+                if (item.type === 'folder') {
+                    // --- 建立資料夾 ---
+                    const folderGroup = document.createElement('div');
+                    folderGroup.className = 'folder-group';
+                    if (item.isOpen) folderGroup.classList.add('open');
+
+                    // 資料夾標題區
+                    const header = document.createElement('div');
+                    header.className = 'folder-header';
+                    header.innerHTML = `
+                        <div class="folder-icon">📁</div>
+                        <div>${item.name}</div>
+                        <div class="folder-arrow">▼</div>
+                    `;
+                    
+                    // 點擊事件：切換展開/收合
+                    header.onclick = () => {
+                        folderGroup.classList.toggle('open');
+                    };
+
+                    // 資料夾內容區
+                    const contentDiv = document.createElement('ul');
+                    contentDiv.className = 'folder-content';
+                    
+                    // 遞迴渲染資料夾裡面的東西
+                    if (item.children && item.children.length > 0) {
+                        renderItems(item.children, contentDiv);
+                    } else {
+                        contentDiv.innerHTML = '<li style="color:#999; text-align:center;">(此資料夾為空)</li>';
+                    }
+
+                    folderGroup.appendChild(header);
+                    folderGroup.appendChild(contentDiv);
+                    container.appendChild(folderGroup);
+
+                } else {
+                    // --- 建立檔案 ---
+                    const li = document.createElement('li');
+                    li.className = 'item-row';
+                    li.innerHTML = `
+                        <div class="file-icon">${item.icon || '📄'}</div>
+                        <div class="file-info">
+                            <a href="${item.path}" target="_blank" class="file-link">${item.name}</a>
+                            ${item.note ? `<div class="file-note">${item.note}</div>` : ''}
+                        </div>
+                    `;
+                    container.appendChild(li);
+                }
+            });
+        }
+
+        // 開始渲染
+        renderItems(CONFIG.items, listRoot);
+
+        // 密碼檢查功能
         function checkPassword() {
             var input = document.getElementById("passwordInput").value;
             if (input === CONFIG.password) {
