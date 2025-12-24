@@ -3,93 +3,138 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>網站內容產生器</title>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
+    <title>網站後台 - 代碼產生器</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Noto Sans TC', sans-serif; background: #f0f2f5; padding: 40px 20px; color: #333; }
-        .container { max-width: 600px; margin: 0 auto; background: #fff; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        h1 { margin-top: 0; color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px; }
-        label { display: block; margin-top: 15px; font-weight: bold; color: #555; }
-        input, select, textarea { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
-        .hint { font-size: 13px; color: #888; margin-top: 4px; }
+        /* --- 全域設定 --- */
+        body { font-family: 'Noto Sans TC', sans-serif; background: #f5f7fa; padding: 40px 20px; color: #333; display: flex; justify-content: center; }
+        .container { width: 100%; max-width: 700px; background: #fff; padding: 40px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
         
-        button { width: 100%; padding: 12px; background-color: #27ae60; color: white; border: none; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer; margin-top: 20px; transition: 0.3s; }
-        button:hover { background-color: #219150; }
+        /* --- 標題區 --- */
+        h1 { margin-top: 0; color: #2c3e50; font-size: 24px; display: flex; align-items: center; border-bottom: 2px solid #eee; padding-bottom: 20px; margin-bottom: 30px; }
+        h1 span { background: #3498db; color: white; padding: 4px 10px; border-radius: 6px; font-size: 14px; margin-left: 15px; font-weight: normal; vertical-align: middle; }
+
+        /* --- 選項切換 (Tab) --- */
+        .tabs { display: flex; margin-bottom: 25px; background: #f0f2f5; padding: 5px; border-radius: 8px; }
+        .tab { flex: 1; text-align: center; padding: 10px; cursor: pointer; border-radius: 6px; font-weight: bold; color: #666; transition: 0.2s; }
+        .tab.active { background: #fff; color: #3498db; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         
-        .result-box { margin-top: 30px; background: #2d3436; padding: 20px; border-radius: 8px; color: #a4b0be; position: relative; }
-        textarea#outputCode { width: 100%; height: 150px; background: transparent; border: none; color: #55efc4; font-family: monospace; font-size: 14px; resize: none; outline: none; }
+        /* --- 表單區域 --- */
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; font-weight: bold; color: #2c3e50; font-size: 15px; }
+        input, select { width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 16px; transition: 0.3s; box-sizing: border-box; }
+        input:focus { border-color: #3498db; outline: none; background: #fbfdff; }
+        .hint { font-size: 13px; color: #888; margin-top: 6px; display: flex; align-items: center; }
+        .hint::before { content: '💡'; margin-right: 5px; }
+
+        /* --- 隱藏/顯示控制 --- */
+        .hidden { display: none; }
+
+        /* --- 按鈕 --- */
+        .btn-generate { width: 100%; padding: 14px; background-color: #3498db; color: white; border: none; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer; margin-top: 10px; transition: 0.3s; box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3); }
+        .btn-generate:hover { background-color: #2980b9; transform: translateY(-2px); }
+
+        /* --- 結果輸出區 --- */
+        .result-area { margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px; display: none; animation: fadeIn 0.5s; }
+        .result-box { background: #282c34; padding: 20px; border-radius: 10px; position: relative; }
+        textarea { width: 100%; height: 160px; background: transparent; border: none; color: #a9b7c6; font-family: 'Consolas', monospace; font-size: 14px; resize: none; outline: none; line-height: 1.5; }
         
-        .copy-btn { position: absolute; top: 10px; right: 10px; background: #0984e3; font-size: 12px; padding: 5px 10px; }
-        
-        .tutorial { background: #e8f4fd; padding: 15px; border-radius: 8px; margin-top: 20px; border-left: 5px solid #3498db; }
-        .tutorial p { margin: 5px 0; font-size: 14px; }
+        .btn-copy { position: absolute; top: 10px; right: 10px; background: rgba(255,255,255,0.1); color: #fff; border: 1px solid rgba(255,255,255,0.2); padding: 5px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; transition: 0.2s; }
+        .btn-copy:hover { background: rgba(255,255,255,0.2); }
+
+        .tutorial { background: #e8f4fd; padding: 20px; border-radius: 8px; margin-top: 25px; border-left: 5px solid #3498db; color: #024ea2; }
+        .tutorial p { margin: 8px 0; font-size: 14px; line-height: 1.6; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h1>🛠️ 內容程式碼產生器</h1>
+        <h1>🛠️ 內容產生器 <span>管理員專用</span></h1>
         
-        <label>1. 你要新增什麼？</label>
-        <select id="itemType" onchange="toggleFields()">
-            <option value="file">📄 單一檔案 / 影片連結</option>
-            <option value="folder">📁 新資料夾</option>
-        </select>
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('file')">📄 新增檔案 / 連結</div>
+            <div class="tab" onclick="switchTab('folder')">📁 新增資料夾</div>
+        </div>
 
-        <label>2. 顯示名稱 (例如：第一章講義)</label>
-        <input type="text" id="itemName" placeholder="輸入學生會看到的標題">
+        <div class="form-group">
+            <label>顯示名稱</label>
+            <input type="text" id="itemName" placeholder="例如：第一章 - 基礎概論">
+        </div>
 
         <div id="fileFields">
-            <label>3. 檔案路徑 或 YouTube網址</label>
-            <input type="text" id="itemPath" placeholder="例如：file/講義.pdf 或 https://youtu.be/...">
-            <div class="hint">如果是上傳的檔案，請記得前面加 file/</div>
+            <div class="form-group">
+                <label>檔案路徑 或 網址</label>
+                <input type="text" id="itemPath" placeholder="例如：file/講義.pdf 或 https://youtu.be/...">
+                <div class="hint">上傳 GitHub 的檔案請輸入 "file/檔名"，外部連結請貼完整網址</div>
+            </div>
 
-            <label>4. 備註 (選填)</label>
-            <input type="text" id="itemNote" placeholder="例如：期中考必考">
+            <div class="form-group">
+                <label>備註文字 (選填)</label>
+                <input type="text" id="itemNote" placeholder="例如：期中考必考、影片長度 10min">
+            </div>
         </div>
 
-        <button onclick="generateCode()">✨ 產生程式碼</button>
+        <button class="btn-generate" onclick="generateCode()">✨ 產生程式碼</button>
 
-        <div class="result-box" id="resultArea" style="display:none;">
-            <button class="copy-btn" onclick="copyToClipboard()">複製代碼</button>
-            <p style="margin:0 0 10px 0; font-size:14px; color:#fff;">請複製下方代碼：</p>
-            <textarea id="outputCode" readonly></textarea>
-        </div>
+        <div class="result-area" id="resultArea">
+            <label style="margin-bottom: 10px; display: block;">程式碼已產生：</label>
+            <div class="result-box">
+                <button class="btn-copy" onclick="copyToClipboard()" id="copyBtn">複製</button>
+                <textarea id="outputCode" readonly></textarea>
+            </div>
 
-        <div class="tutorial">
-            <strong>使用教學：</strong>
-            <p>1. 填寫上方資料，按下「產生程式碼」。</p>
-            <p>2. 複製綠色文字。</p>
-            <p>3. 回到 GitHub 開啟 <b>config.js</b> 檔案。</p>
-            <p>4. 找到 <b>items: [</b> 下方，貼上這段文字。</p>
+            <div class="tutorial">
+                <strong>下一步該怎麼做？</strong>
+                <p>1. 點擊右上角「複製」按鈕。</p>
+                <p>2. 回到 GitHub 開啟 <b>config.js</b> 檔案，點擊編輯 (✏️)。</p>
+                <p>3. 若是新增檔案：貼到 items: [ ... ] 或 children: [ ... ] 裡面。</p>
+                <p>4. 若是新增資料夾：貼到最外層的 items: [ ... ] 裡面。</p>
+            </div>
         </div>
     </div>
 
     <script>
-        function toggleFields() {
-            var type = document.getElementById("itemType").value;
-            if (type === "folder") {
-                document.getElementById("fileFields").style.display = "none";
+        let currentType = 'file';
+
+        function switchTab(type) {
+            currentType = type;
+            // 切換樣式
+            document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+            event.target.classList.add('active');
+
+            // 切換欄位顯示
+            if (type === 'folder') {
+                document.getElementById('fileFields').classList.add('hidden');
+                document.getElementById('itemPath').value = ''; // 清空路徑避免誤填
             } else {
-                document.getElementById("fileFields").style.display = "block";
+                document.getElementById('fileFields').classList.remove('hidden');
             }
+            
+            // 隱藏結果區
+            document.getElementById('resultArea').style.display = 'none';
         }
 
         function generateCode() {
-            var type = document.getElementById("itemType").value;
-            var name = document.getElementById("itemName").value;
-            var path = document.getElementById("itemPath").value;
-            var note = document.getElementById("itemNote").value;
-            var code = "";
+            const name = document.getElementById("itemName").value.trim();
+            const path = document.getElementById("itemPath").value.trim();
+            const note = document.getElementById("itemNote").value.trim();
+            
+            if (!name) { alert("請務必輸入「顯示名稱」！"); return; }
+            if (currentType === 'file' && !path) { alert("檔案必須要有「路徑」或「網址」！"); return; }
 
-            if (!name) { alert("請輸入顯示名稱！"); return; }
+            let code = "";
+            let icon = "📄"; // 預設圖示
 
-            if (type === "file") {
-                // 判斷圖示
-                var icon = "📄";
-                if (path.includes("youtu")) icon = "🎥"; // 如果是影片連結
-                else if (path.endsWith(".jpg") || path.endsWith(".png")) icon = "🖼️";
-                
+            if (currentType === 'file') {
+                // 智慧判斷圖示
+                if (path.includes("youtu")) icon = "🎥"; 
+                else if (/\.(jpg|jpeg|png|gif|webp)$/i.test(path)) icon = "🖼️";
+                else if (/\.(ppt|pptx)$/i.test(path)) icon = "📊";
+                else if (/\.(doc|docx)$/i.test(path)) icon = "📝";
+                else if (/\.(zip|rar)$/i.test(path)) icon = "📦";
+
                 code = `        {
             type: "file",
             name: "${name}",
@@ -98,25 +143,32 @@
             icon: "${icon}"
         },`;
             } else {
+                // 資料夾不需要 isOpen 了，因為現在是進入式介面
                 code = `        {
             type: "folder",
             name: "${name}",
-            isOpen: false,
             children: [
-                // 把該資料夾的檔案貼在這裡
+                // 在這裡貼上該資料夾內的檔案...
             ]
         },`;
             }
 
             document.getElementById("outputCode").value = code;
             document.getElementById("resultArea").style.display = "block";
+            
+            // 讓使用者知道成功了
+            document.getElementById("copyBtn").innerText = "複製";
+            document.getElementById("copyBtn").style.background = "rgba(255,255,255,0.1)";
         }
 
         function copyToClipboard() {
-            var copyText = document.getElementById("outputCode");
+            const copyText = document.getElementById("outputCode");
             copyText.select();
             document.execCommand("copy");
-            alert("已複製！現在去 config.js 貼上吧！");
+            
+            const btn = document.getElementById("copyBtn");
+            btn.innerText = "已複製！";
+            btn.style.background = "#27ae60";
         }
     </script>
 
