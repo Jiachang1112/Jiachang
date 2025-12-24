@@ -15,9 +15,13 @@
         h1 span { background: #3498db; color: white; padding: 4px 10px; border-radius: 6px; font-size: 14px; margin-left: 15px; font-weight: normal; vertical-align: middle; }
 
         /* --- 選項切換 (Tab) --- */
-        .tabs { display: flex; margin-bottom: 25px; background: #f0f2f5; padding: 5px; border-radius: 8px; }
-        .tab { flex: 1; text-align: center; padding: 10px; cursor: pointer; border-radius: 6px; font-weight: bold; color: #666; transition: 0.2s; }
-        .tab.active { background: #fff; color: #3498db; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .tabs { display: flex; margin-bottom: 25px; background: #f0f2f5; padding: 5px; border-radius: 8px; gap: 5px; }
+        .tab { flex: 1; text-align: center; padding: 12px; cursor: pointer; border-radius: 6px; font-weight: bold; color: #666; transition: 0.2s; font-size: 15px; }
+        
+        /* 不同類型的 Tab 顏色 */
+        .tab.active[data-type="file"] { background: #fff; color: #27ae60; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .tab.active[data-type="link"] { background: #fff; color: #e67e22; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .tab.active[data-type="folder"] { background: #fff; color: #3498db; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         
         /* --- 表單區域 --- */
         .form-group { margin-bottom: 20px; }
@@ -25,14 +29,18 @@
         input, select { width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 16px; transition: 0.3s; box-sizing: border-box; }
         input:focus { border-color: #3498db; outline: none; background: #fbfdff; }
         .hint { font-size: 13px; color: #888; margin-top: 6px; display: flex; align-items: center; }
-        .hint::before { content: '💡'; margin-right: 5px; }
-
+        
         /* --- 隱藏/顯示控制 --- */
         .hidden { display: none; }
 
         /* --- 按鈕 --- */
         .btn-generate { width: 100%; padding: 14px; background-color: #3498db; color: white; border: none; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer; margin-top: 10px; transition: 0.3s; box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3); }
-        .btn-generate:hover { background-color: #2980b9; transform: translateY(-2px); }
+        .btn-generate:hover { transform: translateY(-2px); filter: brightness(1.1); }
+        
+        /* 按鈕顏色隨 Tab 改變 */
+        .btn-generate.file { background-color: #27ae60; }
+        .btn-generate.link { background-color: #e67e22; }
+        .btn-generate.folder { background-color: #3498db; }
 
         /* --- 結果輸出區 --- */
         .result-area { margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px; display: none; animation: fadeIn 0.5s; }
@@ -54,29 +62,30 @@
         <h1>🛠️ 內容產生器 <span>管理員專用</span></h1>
         
         <div class="tabs">
-            <div class="tab active" onclick="switchTab('file')">📄 新增檔案 / 連結</div>
-            <div class="tab" onclick="switchTab('folder')">📁 新增資料夾</div>
+            <div class="tab active" data-type="file" onclick="switchTab('file')">📄 新增檔案</div>
+            <div class="tab" data-type="link" onclick="switchTab('link')">🔗 新增連結</div>
+            <div class="tab" data-type="folder" onclick="switchTab('folder')">📁 新增資料夾</div>
         </div>
 
         <div class="form-group">
-            <label>顯示名稱</label>
-            <input type="text" id="itemName" placeholder="例如：第一章 - 基礎概論">
+            <label id="nameLabel">檔案名稱</label>
+            <input type="text" id="itemName" placeholder="例如：第一章講義">
         </div>
 
-        <div id="fileFields">
+        <div id="pathFields">
             <div class="form-group">
-                <label>檔案路徑 或 網址</label>
-                <input type="text" id="itemPath" placeholder="例如：file/講義.pdf 或 https://youtu.be/...">
-                <div class="hint">上傳 GitHub 的檔案請輸入 "file/檔名"，外部連結請貼完整網址</div>
+                <label id="pathLabel">檔案路徑 (GitHub)</label>
+                <input type="text" id="itemPath" placeholder="例如：file/講義.pdf">
+                <div class="hint" id="pathHint">請輸入您上傳到 GitHub 的檔名，需包含 file/</div>
             </div>
 
             <div class="form-group">
                 <label>備註文字 (選填)</label>
-                <input type="text" id="itemNote" placeholder="例如：期中考必考、影片長度 10min">
+                <input type="text" id="itemNote" placeholder="例如：必讀、影片長度 10min">
             </div>
         </div>
 
-        <button class="btn-generate" onclick="generateCode()">✨ 產生程式碼</button>
+        <button class="btn-generate file" id="generateBtn" onclick="generateCode()">✨ 產生檔案代碼</button>
 
         <div class="result-area" id="resultArea">
             <label style="margin-bottom: 10px; display: block;">程式碼已產生：</label>
@@ -86,11 +95,11 @@
             </div>
 
             <div class="tutorial">
-                <strong>下一步該怎麼做？</strong>
-                <p>1. 點擊右上角「複製」按鈕。</p>
-                <p>2. 回到 GitHub 開啟 <b>config.js</b> 檔案，點擊編輯 (✏️)。</p>
-                <p>3. 若是新增檔案：貼到 items: [ ... ] 或 children: [ ... ] 裡面。</p>
-                <p>4. 若是新增資料夾：貼到最外層的 items: [ ... ] 裡面。</p>
+                <strong>下一步：</strong>
+                <p>1. 複製上方代碼。</p>
+                <p>2. 回到 GitHub 開啟 <b>config.js</b>。</p>
+                <p>3. 若是檔案/連結：貼到 items 或 children 裡面。</p>
+                <p>4. 若是資料夾：貼到最外層 items 裡面。</p>
             </div>
         </div>
     </div>
@@ -98,18 +107,47 @@
     <script>
         let currentType = 'file';
 
+        // 初始化
+        switchTab('file');
+
         function switchTab(type) {
             currentType = type;
-            // 切換樣式
+            
+            // 1. 切換 Tab 樣式
             document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
-            event.target.classList.add('active');
+            document.querySelector(`.tab[data-type="${type}"]`).classList.add('active');
 
-            // 切換欄位顯示
-            if (type === 'folder') {
-                document.getElementById('fileFields').classList.add('hidden');
-                document.getElementById('itemPath').value = ''; // 清空路徑避免誤填
-            } else {
-                document.getElementById('fileFields').classList.remove('hidden');
+            // 2. 切換按鈕顏色與文字
+            const btn = document.getElementById('generateBtn');
+            btn.className = `btn-generate ${type}`; // 換顏色
+
+            // 3. 根據類型改變介面文字
+            const nameLabel = document.getElementById('nameLabel');
+            const pathFields = document.getElementById('pathFields');
+            const pathLabel = document.getElementById('pathLabel');
+            const pathInput = document.getElementById('itemPath');
+            const pathHint = document.getElementById('pathHint');
+
+            if (type === 'file') {
+                btn.innerText = "✨ 產生檔案代碼";
+                nameLabel.innerText = "檔案顯示名稱";
+                pathFields.classList.remove('hidden');
+                pathLabel.innerText = "檔案路徑 (GitHub)";
+                pathInput.placeholder = "例如：file/chapter1.pdf";
+                pathHint.innerText = "💡 記得前面要加 file/，例如：file/講義.pdf";
+            } 
+            else if (type === 'link') {
+                btn.innerText = "✨ 產生連結代碼";
+                nameLabel.innerText = "連結顯示名稱";
+                pathFields.classList.remove('hidden');
+                pathLabel.innerText = "網址 (URL)";
+                pathInput.placeholder = "例如：https://www.youtube.com/watch?v=...";
+                pathHint.innerText = "💡 請貼上完整的網址，包含 https://";
+            } 
+            else if (type === 'folder') {
+                btn.innerText = "✨ 產生資料夾代碼";
+                nameLabel.innerText = "資料夾名稱";
+                pathFields.classList.add('hidden'); // 資料夾不需要路徑
             }
             
             // 隱藏結果區
@@ -122,18 +160,37 @@
             const note = document.getElementById("itemNote").value.trim();
             
             if (!name) { alert("請務必輸入「顯示名稱」！"); return; }
-            if (currentType === 'file' && !path) { alert("檔案必須要有「路徑」或「網址」！"); return; }
+            if ((currentType === 'file' || currentType === 'link') && !path) { 
+                alert("請務必輸入路徑或網址！"); return; 
+            }
 
             let code = "";
-            let icon = "📄"; // 預設圖示
+            let icon = "📄"; // 預設
 
-            if (currentType === 'file') {
-                // 智慧判斷圖示
-                if (path.includes("youtu")) icon = "🎥"; 
-                else if (/\.(jpg|jpeg|png|gif|webp)$/i.test(path)) icon = "🖼️";
-                else if (/\.(ppt|pptx)$/i.test(path)) icon = "📊";
-                else if (/\.(doc|docx)$/i.test(path)) icon = "📝";
-                else if (/\.(zip|rar)$/i.test(path)) icon = "📦";
+            if (currentType === 'folder') {
+                // --- 資料夾代碼 ---
+                code = `        {
+            type: "folder",
+            name: "${name}",
+            children: [
+                // 在這裡貼上該資料夾內的檔案...
+            ]
+        },`;
+            } else {
+                // --- 檔案或連結代碼 ---
+                
+                // 1. 決定圖示
+                if (currentType === 'link') {
+                    if (path.includes("youtu")) icon = "🎥"; // YouTube
+                    else icon = "🔗"; // 一般連結
+                } else if (currentType === 'file') {
+                    // 根據副檔名判斷
+                    if (/\.(jpg|jpeg|png|gif|webp)$/i.test(path)) icon = "🖼️";
+                    else if (/\.(ppt|pptx)$/i.test(path)) icon = "📊";
+                    else if (/\.(doc|docx)$/i.test(path)) icon = "📝";
+                    else if (/\.(zip|rar)$/i.test(path)) icon = "📦";
+                    else icon = "📄";
+                }
 
                 code = `        {
             type: "file",
@@ -142,23 +199,15 @@
             note: "${note}",
             icon: "${icon}"
         },`;
-            } else {
-                // 資料夾不需要 isOpen 了，因為現在是進入式介面
-                code = `        {
-            type: "folder",
-            name: "${name}",
-            children: [
-                // 在這裡貼上該資料夾內的檔案...
-            ]
-        },`;
             }
 
             document.getElementById("outputCode").value = code;
             document.getElementById("resultArea").style.display = "block";
             
-            // 讓使用者知道成功了
-            document.getElementById("copyBtn").innerText = "複製";
-            document.getElementById("copyBtn").style.background = "rgba(255,255,255,0.1)";
+            // 重置複製按鈕
+            const copyBtn = document.getElementById("copyBtn");
+            copyBtn.innerText = "複製";
+            copyBtn.style.background = "rgba(255,255,255,0.1)";
         }
 
         function copyToClipboard() {
