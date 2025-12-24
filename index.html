@@ -3,12 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>教學資源庫 - 會員登入</title>
+    <title>教學資源庫</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
         /* --- 基礎設定 --- */
         body { font-family: 'Noto Sans TC', sans-serif; background-color: #f5f7fa; margin: 0; padding: 0; color: #333; height: 100vh; }
         .hidden { display: none !important; }
+
+        /* --- 載入中遮罩 (新增) --- */
+        #loading-mask {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #f5f7fa; z-index: 10000;
+            display: flex; justify-content: center; align-items: center; flex-direction: column;
+            color: #3498db; font-weight: bold; font-size: 18px;
+        }
+        .spinner {
+            border: 4px solid #eee; border-top: 4px solid #3498db;
+            border-radius: 50%; width: 40px; height: 40px;
+            animation: spin 1s linear infinite; margin-bottom: 15px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
         /* --- 驗證區塊 --- */
         #auth-container {
@@ -66,6 +80,11 @@
 </head>
 <body>
 
+    <div id="loading-mask">
+        <div class="spinner"></div>
+        資料讀取中...
+    </div>
+
     <div id="auth-container">
         <div class="auth-box">
             <div class="auth-tabs">
@@ -113,7 +132,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
 
     <script>
-        // 🟢 1. 初始化 Firebase (已經幫你填好你的專案設定了！)
+        // 🟢 Firebase Config
         const firebaseConfig = {
             apiKey: "AIzaSyBZe0HHikgGG9hS3g32jWJ-fzESOTB3Zdw",
             authDomain: "jiachang-2cda4.firebaseapp.com",
@@ -124,10 +143,23 @@
             measurementId: "G-8GETJKDCEW"
         };
 
-        // 啟動 Firebase
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
+
+        // 🟢 核心修改：自動監聽登入狀態
+        // 網頁一載入，這個函式就會自動跑
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                // 如果 Firebase 發現這個人剛剛登入過
+                console.log("發現已登入使用者:", user.email);
+                checkUserStatus(user); // 直接檢查是否核准，通過就進網站
+            } else {
+                // 如果沒登入過
+                console.log("未登入");
+                document.getElementById('loading-mask').style.display = 'none'; // 關閉載入遮罩，顯示登入畫面
+            }
+        });
 
         // --- 介面切換邏輯 ---
         function switchMode(mode) {
@@ -164,14 +196,12 @@
             btn.disabled = true;
             btn.innerText = "註冊中...";
 
-            // 1. 建立 Firebase 帳號
             auth.createUserWithEmailAndPassword(email, pass)
                 .then((userCredential) => {
-                    // 2. 寫入資料庫 (狀態設為 pending)
                     return db.collection("users").doc(userCredential.user.uid).set({
                         name: name,
                         email: email,
-                        status: "pending", // 預設狀態：待審核
+                        status: "pending",
                         createdAt: new Date()
                     });
                 })
@@ -186,14 +216,12 @@
                     btn.disabled = false;
                     btn.innerText = "提交註冊申請";
                     let msg = "註冊失敗";
-                    if(error.code === 'auth/email-already-in-use') msg = "這個 Email 已經註冊過了";
-                    else if(error.code === 'auth/invalid-email') msg = "Email 格式不正確";
-                    else if(error.code === 'permission-denied') msg = "權限不足：請檢查 Firebase 資料庫規則";
+                    if(error.code === 'auth/email-already-in-use') msg = "Email 已被註冊";
                     showMsg(msg + " (" + error.message + ")", "error");
                 });
         }
 
-        // --- 功能：登入 ---
+        // --- 功能：登入 (手動按按鈕時用) ---
         function handleLogin() {
             const email = document.getElementById('loginEmail').value.trim();
             const pass = document.getElementById('loginPass').value.trim();
@@ -204,22 +232,21 @@
             btn.disabled = true;
             btn.innerText = "驗證中...";
 
+            // 這裡不用呼叫 checkUserStatus，因為登入成功後 onAuthStateChanged 會自動觸發
             auth.signInWithEmailAndPassword(email, pass)
-                .then((userCredential) => {
-                    // 登入成功，檢查資料庫狀態
-                    checkUserStatus(userCredential.user);
-                })
                 .catch((error) => {
                     btn.disabled = false;
                     btn.innerText = "登入系統";
-                    console.error(error);
                     showMsg("帳號或密碼錯誤", "error");
                 });
         }
 
         function checkUserStatus(user) {
+            // 讀取資料庫確認狀態
             db.collection("users").doc(user.uid).get().then((doc) => {
-                const btn = document.getElementById('loginBtn');
+                // 無論成功失敗，先關閉載入遮罩
+                document.getElementById('loading-mask').style.display = 'none';
+
                 if (doc.exists) {
                     const userData = doc.data();
                     if (userData.status === 'approved') {
@@ -227,34 +254,34 @@
                         enterSite(userData.name);
                     } else {
                         // 尚未核准
-                        auth.signOut();
-                        btn.disabled = false;
-                        btn.innerText = "登入系統";
+                        auth.signOut(); // 強制登出
+                        document.getElementById('loginBtn').disabled = false;
+                        document.getElementById('loginBtn').innerText = "登入系統";
                         showMsg("您的帳號尚在審核中，請稍候再試。", "error");
                     }
                 } else {
-                    // 有帳號但沒資料庫紀錄 (極少見，除非手動刪除資料庫)
                     showMsg("找不到使用者資料", "error");
                 }
             }).catch((error) => {
+                document.getElementById('loading-mask').style.display = 'none';
                 console.error(error);
-                showMsg("讀取資料失敗 (請檢查資料庫規則)", "error");
+                showMsg("讀取資料失敗", "error");
             });
         }
 
-        // --- 進入網站後的功能 ---
         function enterSite(userName) {
             document.getElementById('auth-container').classList.add('hidden');
             document.getElementById('content').classList.remove('hidden');
             document.getElementById('user-display').innerText = `(${userName})`;
-            
             initSite(); 
         }
 
         function logout() {
-            auth.signOut().then(() => {
-                location.reload();
-            });
+            if(confirm("確定要登出嗎？")) {
+                auth.signOut().then(() => {
+                    location.reload();
+                });
+            }
         }
 
         // --- 檔案列表邏輯 ---
