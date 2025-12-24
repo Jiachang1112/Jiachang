@@ -4,143 +4,233 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>教學資源庫</title>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
         /* --- 基礎設定 --- */
-        body { font-family: 'Noto Sans TC', sans-serif; background-color: #f0f2f5; margin: 0; padding: 40px 20px; color: #333; line-height: 1.6; }
-        .container { max-width: 800px; margin: 0 auto; background: #fff; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); }
-        h1 { color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 15px; margin-top: 0; font-weight: 700; }
-        .intro { color: #666; margin-bottom: 30px; }
+        body { font-family: 'Noto Sans TC', sans-serif; background-color: #f5f7fa; margin: 0; padding: 40px 20px; color: #333; }
+        .container { max-width: 900px; margin: 0 auto; background: #fff; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); overflow: hidden; min-height: 500px; display: flex; flex-direction: column; }
         
-        /* --- 列表樣式 --- */
-        ul { list-style: none; padding: 0; margin: 0; }
+        /* --- 頂部導航區 --- */
+        .header-bar { background: #fff; padding: 20px 30px; border-bottom: 1px solid #eee; display: flex; align-items: center; justify-content: space-between; }
+        .brand { font-size: 20px; font-weight: 700; color: #2c3e50; display: flex; align-items: center; }
+        .brand span { margin-right: 10px; font-size: 24px; }
         
-        /* 檔案卡片 */
-        .item-row { display: flex; align-items: center; padding: 12px 15px; border: 1px solid #eee; border-radius: 8px; margin-bottom: 10px; background: #fff; transition: all 0.2s; }
-        .item-row:hover { border-color: #3498db; box-shadow: 0 2px 8px rgba(52, 152, 219, 0.1); transform: translateX(5px); }
-        .file-icon { font-size: 24px; margin-right: 15px; min-width: 30px; text-align: center; }
-        .file-info { flex-grow: 1; }
-        .file-link { text-decoration: none; color: #2c3e50; font-size: 16px; font-weight: 700; display: block; cursor: pointer; }
-        .file-link:hover { color: #3498db; }
-        .file-note { color: #888; font-size: 13px; margin-top: 2px; }
-
-        /* 資料夾樣式 */
-        .folder-group { margin-bottom: 10px; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden; }
-        .folder-header { 
-            background-color: #f8f9fa; padding: 15px; cursor: pointer; display: flex; align-items: center; font-weight: bold; color: #2c3e50; 
-            transition: background 0.2s; user-select: none;
+        /* --- 路徑列 (Breadcrumb) & 工具列 --- */
+        .nav-bar { background: #f8f9fa; padding: 12px 30px; border-bottom: 1px solid #eee; display: flex; align-items: center; font-size: 14px; color: #666; }
+        .breadcrumb { display: flex; align-items: center; flex-grow: 1; overflow-x: auto; white-space: nowrap; }
+        .breadcrumb-item { cursor: pointer; color: #0366d6; font-weight: 500; transition: 0.2s; }
+        .breadcrumb-item:hover { text-decoration: underline; color: #024ea2; }
+        .breadcrumb-separator { margin: 0 8px; color: #aaa; }
+        .breadcrumb-current { color: #333; font-weight: bold; cursor: default; }
+        
+        .back-btn { 
+            background: white; border: 1px solid #ddd; padding: 6px 12px; border-radius: 6px; 
+            cursor: pointer; font-size: 13px; margin-right: 15px; display: flex; align-items: center; transition: 0.2s; color: #555;
         }
-        .folder-header:hover { background-color: #eef2f7; }
-        .folder-icon { font-size: 24px; margin-right: 12px; }
-        .folder-arrow { margin-left: auto; transition: transform 0.3s; color: #999; }
-        .folder-content { 
-            display: none; /* 預設隱藏 */
-            padding: 15px; background-color: #fff; border-top: 1px solid #eee; 
-        }
-        
-        /* 資料夾展開時的狀態 */
-        .folder-group.open .folder-content { display: block; }
-        .folder-group.open .folder-arrow { transform: rotate(180deg); }
-        .folder-group.open .folder-header { background-color: #e8f4fd; color: #0366d6; }
+        .back-btn:hover { background: #eee; border-color: #ccc; }
+        .back-btn svg { width: 14px; height: 14px; margin-right: 5px; fill: currentColor; }
+        .back-btn.hidden { display: none; }
 
-        /* 登入畫面 */
-        #login-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #f0f2f5; z-index: 9999; display: flex; justify-content: center; align-items: center; flex-direction: column; }
-        .login-box { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); text-align: center; max-width: 400px; width: 100%; }
-        input[type="password"] { padding: 12px; font-size: 16px; border: 2px solid #eee; border-radius: 8px; margin-top: 20px; width: 80%; transition: border-color 0.3s; }
+        /* --- 列表區域 --- */
+        #list-root { padding: 10px 0; flex-grow: 1; }
+        
+        /* 列表項目 (共用樣式) */
+        .list-item { 
+            display: flex; align-items: center; padding: 16px 30px; 
+            border-bottom: 1px solid #f0f0f0; cursor: pointer; transition: all 0.2s; 
+        }
+        .list-item:hover { background-color: #f0f7ff; padding-left: 35px; } /* Hover時稍微右移 */
+        .list-item:last-child { border-bottom: none; }
+
+        .item-icon { font-size: 28px; margin-right: 20px; min-width: 40px; text-align: center; }
+        .item-info { flex-grow: 1; }
+        .item-name { font-size: 16px; font-weight: 600; color: #333; margin-bottom: 4px; }
+        .item-note { font-size: 13px; color: #888; }
+        .item-arrow { color: #ccc; font-size: 14px; }
+
+        /* 資料夾專用 */
+        .folder-item .item-icon { color: #f39c12; } /* 資料夾黃色 */
+        
+        /* 檔案專用 */
+        .file-item .item-icon { color: #3498db; }
+        .file-item:hover .item-name { color: #0366d6; }
+
+        /* --- 登入畫面 (維持原本設計) --- */
+        #login-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #f5f7fa; z-index: 9999; display: flex; justify-content: center; align-items: center; flex-direction: column; }
+        .login-box { background: white; padding: 40px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); text-align: center; max-width: 360px; width: 90%; }
+        input[type="password"] { padding: 12px; font-size: 16px; border: 2px solid #eee; border-radius: 8px; margin-top: 20px; width: 80%; transition: border-color 0.3s; text-align: center;}
         input[type="password"]:focus { border-color: #3498db; outline: none; }
-        button { padding: 12px 30px; font-size: 16px; background-color: #3498db; color: white; border: none; border-radius: 8px; cursor: pointer; margin-top: 20px; font-weight: bold; transition: background-color 0.3s; }
-        button:hover { background-color: #2980b9; }
-        #error-msg { color: #e74c3c; margin-top: 15px; display: none; font-weight: bold; }
-        #content { display: none; }
+        button.login-btn { padding: 12px 40px; font-size: 16px; background-color: #3498db; color: white; border: none; border-radius: 8px; cursor: pointer; margin-top: 20px; font-weight: bold; transition: background-color 0.3s; width: 100%; }
+        button.login-btn:hover { background-color: #2980b9; }
+        #error-msg { color: #e74c3c; margin-top: 15px; display: none; font-weight: bold; font-size: 14px; }
+        #content { display: none; height: 100%; }
     </style>
 </head>
 <body>
 
     <div id="login-overlay">
         <div class="login-box">
-            <h2 style="color: #2c3e50; margin-top: 0;">🔒 請輸入密碼</h2>
-            <p style="color: #666;">本區域僅供內部教學使用</p>
-            <input type="password" id="passwordInput" placeholder="輸入通關密語">
+            <h2 style="color: #2c3e50; margin-top: 0;">🔒 身份驗證</h2>
+            <p style="color: #666; font-size: 14px;">請輸入通關密語以存取教材</p>
+            <input type="password" id="passwordInput" placeholder="Password">
             <br>
-            <button onclick="checkPassword()">進入</button>
-            <p id="error-msg">密碼錯誤，請再試一次。</p>
+            <button class="login-btn" onclick="checkPassword()">進入系統</button>
+            <p id="error-msg">密碼錯誤</p>
         </div>
     </div>
 
-    <div id="content" class="container">
-        <h1 id="page-title"><span>📂</span>載入中...</h1>
-        <p class="intro" id="intro-text">...</p>
-        <div id="list-root"></div>
+    <div id="content">
+        <div class="container">
+            <div class="header-bar">
+                <div class="brand">
+                    <span>📂</span> <div id="page-title">教學資源庫</div>
+                </div>
+            </div>
+
+            <div class="nav-bar">
+                <button id="backBtn" class="back-btn hidden" onclick="goUp()">
+                    <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+                    返回
+                </button>
+                <div class="breadcrumb" id="breadcrumb-container">
+                    </div>
+            </div>
+
+            <div id="list-root">
+                </div>
+        </div>
     </div>
 
     <script src="config.js"></script>
 
     <script>
-        // 初始化
+        // --- 初始化設定 ---
         document.title = CONFIG.pageTitle;
-        document.getElementById("page-title").innerHTML = "<span>📂</span> " + CONFIG.pageTitle;
-        document.getElementById("intro-text").innerText = CONFIG.introText;
+        document.getElementById("page-title").innerText = CONFIG.pageTitle;
 
-        const listRoot = document.getElementById("list-root");
+        // --- 狀態管理 ---
+        // 我們用一個 Array 來記錄現在的路徑 Stack
+        // 裡面放的是資料夾物件，空陣列代表在「首頁」
+        let pathStack = [];
 
-        // 渲染函數：負責決定要畫出檔案還是資料夾
-        function renderItems(items, container) {
+        // 啟動
+        renderList(CONFIG.items);
+        updateBreadcrumb();
+
+        // --- 核心功能：渲染列表 ---
+        function renderList(items) {
+            const container = document.getElementById("list-root");
+            container.innerHTML = ""; // 清空畫面
+
+            if (!items || items.length === 0) {
+                container.innerHTML = '<div style="text-align:center; padding:40px; color:#999;">(此資料夾是空的)</div>';
+                return;
+            }
+
             items.forEach(item => {
+                const div = document.createElement("div");
+                
                 if (item.type === 'folder') {
-                    // --- 建立資料夾 ---
-                    const folderGroup = document.createElement('div');
-                    folderGroup.className = 'folder-group';
-                    if (item.isOpen) folderGroup.classList.add('open');
-
-                    // 資料夾標題區
-                    const header = document.createElement('div');
-                    header.className = 'folder-header';
-                    header.innerHTML = `
-                        <div class="folder-icon">📁</div>
-                        <div>${item.name}</div>
-                        <div class="folder-arrow">▼</div>
+                    // --- 渲染資料夾 ---
+                    div.className = "list-item folder-item";
+                    div.innerHTML = `
+                        <div class="item-icon">📁</div>
+                        <div class="item-info">
+                            <div class="item-name">${item.name}</div>
+                            <div class="item-note">${item.children ? item.children.length + ' 個項目' : '空資料夾'}</div>
+                        </div>
+                        <div class="item-arrow">➤</div>
                     `;
-                    
-                    // 點擊事件：切換展開/收合
-                    header.onclick = () => {
-                        folderGroup.classList.toggle('open');
-                    };
-
-                    // 資料夾內容區
-                    const contentDiv = document.createElement('ul');
-                    contentDiv.className = 'folder-content';
-                    
-                    // 遞迴渲染資料夾裡面的東西
-                    if (item.children && item.children.length > 0) {
-                        renderItems(item.children, contentDiv);
-                    } else {
-                        contentDiv.innerHTML = '<li style="color:#999; text-align:center;">(此資料夾為空)</li>';
-                    }
-
-                    folderGroup.appendChild(header);
-                    folderGroup.appendChild(contentDiv);
-                    container.appendChild(folderGroup);
+                    // 點擊資料夾：進入下一層
+                    div.onclick = () => enterFolder(item);
 
                 } else {
-                    // --- 建立檔案 ---
-                    const li = document.createElement('li');
-                    li.className = 'item-row';
-                    li.innerHTML = `
-                        <div class="file-icon">${item.icon || '📄'}</div>
-                        <div class="file-info">
-                            <a href="${item.path}" target="_blank" class="file-link">${item.name}</a>
-                            ${item.note ? `<div class="file-note">${item.note}</div>` : ''}
+                    // --- 渲染檔案 ---
+                    // 判斷圖示
+                    let icon = item.icon || '📄'; 
+                    div.className = "list-item file-item";
+                    div.innerHTML = `
+                        <div class="item-icon">${icon}</div>
+                        <div class="item-info">
+                            <div class="item-name">${item.name}</div>
+                            <div class="item-note">${item.note || ''}</div>
                         </div>
                     `;
-                    container.appendChild(li);
+                    // 點擊檔案：開啟連結
+                    div.onclick = () => window.open(item.path, '_blank');
                 }
+                container.appendChild(div);
             });
         }
 
-        // 開始渲染
-        renderItems(CONFIG.items, listRoot);
+        // --- 功能：進入資料夾 ---
+        function enterFolder(folderItem) {
+            pathStack.push(folderItem); // 把這個資料夾加入路徑紀錄
+            renderList(folderItem.children); // 重新渲染畫面，只顯示這個資料夾的內容
+            updateBreadcrumb(); // 更新上方路徑列
+        }
 
-        // 密碼檢查功能
+        // --- 功能：返回上一層 ---
+        function goUp() {
+            if (pathStack.length > 0) {
+                pathStack.pop(); // 移除最後一個路徑
+                
+                // 判斷現在要顯示什麼
+                if (pathStack.length === 0) {
+                    renderList(CONFIG.items); // 回到首頁
+                } else {
+                    const currentFolder = pathStack[pathStack.length - 1];
+                    renderList(currentFolder.children);
+                }
+                updateBreadcrumb();
+            }
+        }
+
+        // --- 功能：跳轉到特定層級 (點擊麵包屑時用) ---
+        function jumpTo(index) {
+            // 如果 index 是 -1，代表回到首頁
+            if (index === -1) {
+                pathStack = [];
+                renderList(CONFIG.items);
+            } else {
+                // 保留 index 之前的路徑，切掉後面的
+                pathStack = pathStack.slice(0, index + 1);
+                const currentFolder = pathStack[pathStack.length - 1];
+                renderList(currentFolder.children);
+            }
+            updateBreadcrumb();
+        }
+
+        // --- 功能：更新路徑列 (Breadcrumb) ---
+        function updateBreadcrumb() {
+            const bcContainer = document.getElementById("breadcrumb-container");
+            const backBtn = document.getElementById("backBtn");
+            
+            // 1. 處理返回按鈕顯示
+            if (pathStack.length > 0) {
+                backBtn.classList.remove("hidden");
+            } else {
+                backBtn.classList.add("hidden");
+            }
+
+            // 2. 產生路徑 HTML
+            let html = `<span class="breadcrumb-item" onclick="jumpTo(-1)">首頁</span>`;
+            
+            pathStack.forEach((folder, index) => {
+                html += `<span class="breadcrumb-separator">/</span>`;
+                
+                // 如果是最後一個（當前位置），就不能點擊，字體加粗
+                if (index === pathStack.length - 1) {
+                    html += `<span class="breadcrumb-current">${folder.name}</span>`;
+                } else {
+                    html += `<span class="breadcrumb-item" onclick="jumpTo(${index})">${folder.name}</span>`;
+                }
+            });
+
+            bcContainer.innerHTML = html;
+        }
+
+        // --- 密碼鎖定功能 ---
         function checkPassword() {
             var input = document.getElementById("passwordInput").value;
             if (input === CONFIG.password) {
@@ -151,10 +241,10 @@
                 document.getElementById("passwordInput").value = "";
             }
         }
-
         document.getElementById("passwordInput").addEventListener("keypress", function(event) {
             if (event.key === "Enter") checkPassword();
         });
+
     </script>
 </body>
 </html>
