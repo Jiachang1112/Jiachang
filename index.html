@@ -3,248 +3,332 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>教學資源庫</title>
+    <title>教學資源庫 - 會員登入</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
         /* --- 基礎設定 --- */
-        body { font-family: 'Noto Sans TC', sans-serif; background-color: #f5f7fa; margin: 0; padding: 40px 20px; color: #333; }
-        .container { max-width: 900px; margin: 0 auto; background: #fff; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); overflow: hidden; min-height: 500px; display: flex; flex-direction: column; }
+        body { font-family: 'Noto Sans TC', sans-serif; background-color: #f5f7fa; margin: 0; padding: 0; color: #333; height: 100vh; }
+        .hidden { display: none !important; }
+
+        /* --- 驗證區塊 --- */
+        #auth-container {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #f5f7fa; z-index: 9999;
+            display: flex; justify-content: center; align-items: center;
+        }
+        .auth-box {
+            background: white; padding: 40px; border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            width: 100%; max-width: 380px;
+        }
+        .auth-tabs { display: flex; border-bottom: 2px solid #eee; margin-bottom: 25px; }
+        .auth-tab { flex: 1; text-align: center; padding: 12px; cursor: pointer; color: #999; font-weight: bold; transition: 0.3s; }
+        .auth-tab.active { color: #3498db; border-bottom: 2px solid #3498db; margin-bottom: -2px; }
         
-        /* --- 頂部導航區 --- */
+        .form-title { text-align: center; margin-bottom: 20px; color: #2c3e50; font-size: 22px; font-weight: 700; }
+        .input-group { margin-bottom: 15px; }
+        input { width: 100%; padding: 14px; border: 2px solid #eee; border-radius: 8px; box-sizing: border-box; font-size: 16px; transition: 0.3s; }
+        input:focus { border-color: #3498db; outline: none; background: #fbfdff; }
+        
+        button.action-btn { width: 100%; padding: 14px; background-color: #3498db; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.3s; margin-top: 10px; }
+        button.action-btn:hover { background-color: #2980b9; transform: translateY(-1px); }
+        button:disabled { background-color: #bdc3c7; cursor: not-allowed; transform: none; }
+
+        .msg { font-size: 14px; text-align: center; margin-top: 20px; min-height: 20px; line-height: 1.5; }
+        .msg.error { color: #e74c3c; }
+        .msg.success { color: #27ae60; }
+
+        /* --- 主內容區 --- */
+        .container { max-width: 900px; margin: 40px auto; background: #fff; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); overflow: hidden; min-height: 500px; display: flex; flex-direction: column; }
         .header-bar { background: #fff; padding: 20px 30px; border-bottom: 1px solid #eee; display: flex; align-items: center; justify-content: space-between; }
         .brand { font-size: 20px; font-weight: 700; color: #2c3e50; display: flex; align-items: center; }
-        .brand span { margin-right: 10px; font-size: 24px; }
-        
-        /* --- 路徑列 (Breadcrumb) & 工具列 --- */
+        .logout-btn { font-size: 14px; color: #e74c3c; cursor: pointer; border: 1px solid #eee; padding: 6px 12px; border-radius: 6px; transition: 0.2s; }
+        .logout-btn:hover { background: #fff1f0; border-color: #e74c3c; }
         .nav-bar { background: #f8f9fa; padding: 12px 30px; border-bottom: 1px solid #eee; display: flex; align-items: center; font-size: 14px; color: #666; }
         .breadcrumb { display: flex; align-items: center; flex-grow: 1; overflow-x: auto; white-space: nowrap; }
-        .breadcrumb-item { cursor: pointer; color: #0366d6; font-weight: 500; transition: 0.2s; }
-        .breadcrumb-item:hover { text-decoration: underline; color: #024ea2; }
+        .breadcrumb-item { cursor: pointer; color: #0366d6; font-weight: 500; }
+        .breadcrumb-item:hover { text-decoration: underline; }
         .breadcrumb-separator { margin: 0 8px; color: #aaa; }
         .breadcrumb-current { color: #333; font-weight: bold; cursor: default; }
-        
-        .back-btn { 
-            background: white; border: 1px solid #ddd; padding: 6px 12px; border-radius: 6px; 
-            cursor: pointer; font-size: 13px; margin-right: 15px; display: flex; align-items: center; transition: 0.2s; color: #555;
-        }
-        .back-btn:hover { background: #eee; border-color: #ccc; }
-        .back-btn svg { width: 14px; height: 14px; margin-right: 5px; fill: currentColor; }
-        .back-btn.hidden { display: none; }
-
-        /* --- 列表區域 --- */
+        .back-btn { background: white; border: 1px solid #ddd; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; margin-right: 15px; display: flex; align-items: center; color: #555; }
         #list-root { padding: 10px 0; flex-grow: 1; }
-        
-        /* 列表項目 (共用樣式) */
-        .list-item { 
-            display: flex; align-items: center; padding: 16px 30px; 
-            border-bottom: 1px solid #f0f0f0; cursor: pointer; transition: all 0.2s; 
-        }
-        .list-item:hover { background-color: #f0f7ff; padding-left: 35px; } /* Hover時稍微右移 */
-        .list-item:last-child { border-bottom: none; }
-
+        .list-item { display: flex; align-items: center; padding: 16px 30px; border-bottom: 1px solid #f0f0f0; cursor: pointer; transition: all 0.2s; }
+        .list-item:hover { background-color: #f0f7ff; padding-left: 35px; }
         .item-icon { font-size: 28px; margin-right: 20px; min-width: 40px; text-align: center; }
         .item-info { flex-grow: 1; }
         .item-name { font-size: 16px; font-weight: 600; color: #333; margin-bottom: 4px; }
         .item-note { font-size: 13px; color: #888; }
         .item-arrow { color: #ccc; font-size: 14px; }
-
-        /* 資料夾專用 */
-        .folder-item .item-icon { color: #f39c12; } /* 資料夾黃色 */
-        
-        /* 檔案專用 */
+        .folder-item .item-icon { color: #f39c12; }
         .file-item .item-icon { color: #3498db; }
         .file-item:hover .item-name { color: #0366d6; }
-
-        /* --- 登入畫面 (維持原本設計) --- */
-        #login-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #f5f7fa; z-index: 9999; display: flex; justify-content: center; align-items: center; flex-direction: column; }
-        .login-box { background: white; padding: 40px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); text-align: center; max-width: 360px; width: 90%; }
-        input[type="password"] { padding: 12px; font-size: 16px; border: 2px solid #eee; border-radius: 8px; margin-top: 20px; width: 80%; transition: border-color 0.3s; text-align: center;}
-        input[type="password"]:focus { border-color: #3498db; outline: none; }
-        button.login-btn { padding: 12px 40px; font-size: 16px; background-color: #3498db; color: white; border: none; border-radius: 8px; cursor: pointer; margin-top: 20px; font-weight: bold; transition: background-color 0.3s; width: 100%; }
-        button.login-btn:hover { background-color: #2980b9; }
-        #error-msg { color: #e74c3c; margin-top: 15px; display: none; font-weight: bold; font-size: 14px; }
-        #content { display: none; height: 100%; }
     </style>
 </head>
 <body>
 
-    <div id="login-overlay">
-        <div class="login-box">
-            <h2 style="color: #2c3e50; margin-top: 0;">🔒 身份驗證</h2>
-            <p style="color: #666; font-size: 14px;">請輸入通關密語以存取教材</p>
-            <input type="password" id="passwordInput" placeholder="Password">
-            <br>
-            <button class="login-btn" onclick="checkPassword()">進入系統</button>
-            <p id="error-msg">密碼錯誤</p>
+    <div id="auth-container">
+        <div class="auth-box">
+            <div class="auth-tabs">
+                <div class="auth-tab active" onclick="switchMode('login')">會員登入</div>
+                <div class="auth-tab" onclick="switchMode('register')">註冊帳號</div>
+            </div>
+
+            <div id="login-form">
+                <div class="form-title">歡迎回來</div>
+                <div class="input-group"><input type="email" id="loginEmail" placeholder="電子信箱"></div>
+                <div class="input-group"><input type="password" id="loginPass" placeholder="密碼"></div>
+                <button class="action-btn" onclick="handleLogin()" id="loginBtn">登入系統</button>
+            </div>
+
+            <div id="register-form" class="hidden">
+                <div class="form-title">建立新帳號</div>
+                <div class="input-group"><input type="text" id="regName" placeholder="您的姓名 (給老師看的)"></div>
+                <div class="input-group"><input type="email" id="regEmail" placeholder="電子信箱"></div>
+                <div class="input-group"><input type="password" id="regPass" placeholder="設定密碼 (至少6位)"></div>
+                <button class="action-btn" onclick="handleRegister()" id="regBtn" style="background-color:#27ae60;">提交註冊申請</button>
+            </div>
+
+            <div id="msg-box" class="msg"></div>
         </div>
     </div>
 
-    <div id="content">
+    <div id="content" class="hidden">
         <div class="container">
             <div class="header-bar">
-                <div class="brand">
-                    <span>📂</span> <div id="page-title">教學資源庫</div>
-                </div>
+                <div class="brand"><span>📂</span> <div id="page-title">教學資源庫</div></div>
+                <div class="logout-btn" onclick="logout()">登出 <span id="user-display"></span></div>
             </div>
-
             <div class="nav-bar">
-                <button id="backBtn" class="back-btn hidden" onclick="goUp()">
-                    <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
-                    返回
-                </button>
-                <div class="breadcrumb" id="breadcrumb-container">
-                    </div>
+                <button id="backBtn" class="back-btn hidden" onclick="goUp()">返回</button>
+                <div class="breadcrumb" id="breadcrumb-container"></div>
             </div>
-
-            <div id="list-root">
-                </div>
+            <div id="list-root"></div>
         </div>
     </div>
 
     <script src="config.js"></script>
 
-    <script>
-        // --- 初始化設定 ---
-        document.title = CONFIG.pageTitle;
-        document.getElementById("page-title").innerText = CONFIG.pageTitle;
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
 
-        // --- 狀態管理 ---
-        // 我們用一個 Array 來記錄現在的路徑 Stack
-        // 裡面放的是資料夾物件，空陣列代表在「首頁」
+    <script>
+        // 🟢 1. 初始化 Firebase (已經幫你填好你的專案設定了！)
+        const firebaseConfig = {
+            apiKey: "AIzaSyBZe0HHikgGG9hS3g32jWJ-fzESOTB3Zdw",
+            authDomain: "jiachang-2cda4.firebaseapp.com",
+            projectId: "jiachang-2cda4",
+            storageBucket: "jiachang-2cda4.firebasestorage.app",
+            messagingSenderId: "752423213714",
+            appId: "1:752423213714:web:e03fc6967d355e9bbc644b",
+            measurementId: "G-8GETJKDCEW"
+        };
+
+        // 啟動 Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // --- 介面切換邏輯 ---
+        function switchMode(mode) {
+            document.querySelectorAll('.auth-tab').forEach(el => el.classList.remove('active'));
+            document.getElementById('msg-box').innerText = '';
+            
+            if (mode === 'login') {
+                document.querySelectorAll('.auth-tab')[0].classList.add('active');
+                document.getElementById('login-form').classList.remove('hidden');
+                document.getElementById('register-form').classList.add('hidden');
+            } else {
+                document.querySelectorAll('.auth-tab')[1].classList.add('active');
+                document.getElementById('login-form').classList.add('hidden');
+                document.getElementById('register-form').classList.remove('hidden');
+            }
+        }
+
+        function showMsg(text, type) {
+            const el = document.getElementById('msg-box');
+            el.innerText = text;
+            el.className = 'msg ' + type;
+        }
+
+        // --- 功能：註冊 ---
+        function handleRegister() {
+            const name = document.getElementById('regName').value.trim();
+            const email = document.getElementById('regEmail').value.trim();
+            const pass = document.getElementById('regPass').value.trim();
+
+            if(!name || !email || !pass) return showMsg("所有欄位都要填寫喔", "error");
+            if(pass.length < 6) return showMsg("密碼至少要 6 個字", "error");
+
+            const btn = document.getElementById('regBtn');
+            btn.disabled = true;
+            btn.innerText = "註冊中...";
+
+            // 1. 建立 Firebase 帳號
+            auth.createUserWithEmailAndPassword(email, pass)
+                .then((userCredential) => {
+                    // 2. 寫入資料庫 (狀態設為 pending)
+                    return db.collection("users").doc(userCredential.user.uid).set({
+                        name: name,
+                        email: email,
+                        status: "pending", // 預設狀態：待審核
+                        createdAt: new Date()
+                    });
+                })
+                .then(() => {
+                    showMsg("註冊成功！請等待老師核准後才能登入。", "success");
+                    btn.disabled = false;
+                    btn.innerText = "提交註冊申請";
+                    auth.signOut(); 
+                    setTimeout(() => switchMode('login'), 3000);
+                })
+                .catch((error) => {
+                    btn.disabled = false;
+                    btn.innerText = "提交註冊申請";
+                    let msg = "註冊失敗";
+                    if(error.code === 'auth/email-already-in-use') msg = "這個 Email 已經註冊過了";
+                    else if(error.code === 'auth/invalid-email') msg = "Email 格式不正確";
+                    else if(error.code === 'permission-denied') msg = "權限不足：請檢查 Firebase 資料庫規則";
+                    showMsg(msg + " (" + error.message + ")", "error");
+                });
+        }
+
+        // --- 功能：登入 ---
+        function handleLogin() {
+            const email = document.getElementById('loginEmail').value.trim();
+            const pass = document.getElementById('loginPass').value.trim();
+
+            if(!email || !pass) return showMsg("請輸入帳號密碼", "error");
+
+            const btn = document.getElementById('loginBtn');
+            btn.disabled = true;
+            btn.innerText = "驗證中...";
+
+            auth.signInWithEmailAndPassword(email, pass)
+                .then((userCredential) => {
+                    // 登入成功，檢查資料庫狀態
+                    checkUserStatus(userCredential.user);
+                })
+                .catch((error) => {
+                    btn.disabled = false;
+                    btn.innerText = "登入系統";
+                    console.error(error);
+                    showMsg("帳號或密碼錯誤", "error");
+                });
+        }
+
+        function checkUserStatus(user) {
+            db.collection("users").doc(user.uid).get().then((doc) => {
+                const btn = document.getElementById('loginBtn');
+                if (doc.exists) {
+                    const userData = doc.data();
+                    if (userData.status === 'approved') {
+                        // 核准通過：進入網站
+                        enterSite(userData.name);
+                    } else {
+                        // 尚未核准
+                        auth.signOut();
+                        btn.disabled = false;
+                        btn.innerText = "登入系統";
+                        showMsg("您的帳號尚在審核中，請稍候再試。", "error");
+                    }
+                } else {
+                    // 有帳號但沒資料庫紀錄 (極少見，除非手動刪除資料庫)
+                    showMsg("找不到使用者資料", "error");
+                }
+            }).catch((error) => {
+                console.error(error);
+                showMsg("讀取資料失敗 (請檢查資料庫規則)", "error");
+            });
+        }
+
+        // --- 進入網站後的功能 ---
+        function enterSite(userName) {
+            document.getElementById('auth-container').classList.add('hidden');
+            document.getElementById('content').classList.remove('hidden');
+            document.getElementById('user-display').innerText = `(${userName})`;
+            
+            initSite(); 
+        }
+
+        function logout() {
+            auth.signOut().then(() => {
+                location.reload();
+            });
+        }
+
+        // --- 檔案列表邏輯 ---
         let pathStack = [];
 
-        // 啟動
-        renderList(CONFIG.items);
-        updateBreadcrumb();
+        function initSite() {
+            document.title = CONFIG.pageTitle;
+            document.getElementById("page-title").innerText = CONFIG.pageTitle;
+            renderList(CONFIG.items);
+            updateBreadcrumb();
+        }
 
-        // --- 核心功能：渲染列表 ---
         function renderList(items) {
             const container = document.getElementById("list-root");
-            container.innerHTML = ""; // 清空畫面
-
+            container.innerHTML = ""; 
             if (!items || items.length === 0) {
                 container.innerHTML = '<div style="text-align:center; padding:40px; color:#999;">(此資料夾是空的)</div>';
                 return;
             }
-
             items.forEach(item => {
                 const div = document.createElement("div");
-                
                 if (item.type === 'folder') {
-                    // --- 渲染資料夾 ---
                     div.className = "list-item folder-item";
-                    div.innerHTML = `
-                        <div class="item-icon">📁</div>
-                        <div class="item-info">
-                            <div class="item-name">${item.name}</div>
-                            <div class="item-note">${item.children ? item.children.length + ' 個項目' : '空資料夾'}</div>
-                        </div>
-                        <div class="item-arrow">➤</div>
-                    `;
-                    // 點擊資料夾：進入下一層
+                    div.innerHTML = `<div class="item-icon">📁</div><div class="item-info"><div class="item-name">${item.name}</div><div class="item-note">${item.children ? item.children.length + ' 個項目' : '空資料夾'}</div></div><div class="item-arrow">➤</div>`;
                     div.onclick = () => enterFolder(item);
-
                 } else {
-                    // --- 渲染檔案 ---
-                    // 判斷圖示
                     let icon = item.icon || '📄'; 
                     div.className = "list-item file-item";
-                    div.innerHTML = `
-                        <div class="item-icon">${icon}</div>
-                        <div class="item-info">
-                            <div class="item-name">${item.name}</div>
-                            <div class="item-note">${item.note || ''}</div>
-                        </div>
-                    `;
-                    // 點擊檔案：開啟連結
+                    div.innerHTML = `<div class="item-icon">${icon}</div><div class="item-info"><div class="item-name">${item.name}</div><div class="item-note">${item.note || ''}</div></div>`;
                     div.onclick = () => window.open(item.path, '_blank');
                 }
                 container.appendChild(div);
             });
         }
 
-        // --- 功能：進入資料夾 ---
         function enterFolder(folderItem) {
-            pathStack.push(folderItem); // 把這個資料夾加入路徑紀錄
-            renderList(folderItem.children); // 重新渲染畫面，只顯示這個資料夾的內容
-            updateBreadcrumb(); // 更新上方路徑列
+            pathStack.push(folderItem);
+            renderList(folderItem.children);
+            updateBreadcrumb();
         }
 
-        // --- 功能：返回上一層 ---
         function goUp() {
             if (pathStack.length > 0) {
-                pathStack.pop(); // 移除最後一個路徑
-                
-                // 判斷現在要顯示什麼
-                if (pathStack.length === 0) {
-                    renderList(CONFIG.items); // 回到首頁
-                } else {
-                    const currentFolder = pathStack[pathStack.length - 1];
-                    renderList(currentFolder.children);
-                }
+                pathStack.pop(); 
+                if (pathStack.length === 0) renderList(CONFIG.items);
+                else renderList(pathStack[pathStack.length - 1].children);
                 updateBreadcrumb();
             }
         }
 
-        // --- 功能：跳轉到特定層級 (點擊麵包屑時用) ---
         function jumpTo(index) {
-            // 如果 index 是 -1，代表回到首頁
             if (index === -1) {
                 pathStack = [];
                 renderList(CONFIG.items);
             } else {
-                // 保留 index 之前的路徑，切掉後面的
                 pathStack = pathStack.slice(0, index + 1);
-                const currentFolder = pathStack[pathStack.length - 1];
-                renderList(currentFolder.children);
+                renderList(pathStack[pathStack.length - 1].children);
             }
             updateBreadcrumb();
         }
 
-        // --- 功能：更新路徑列 (Breadcrumb) ---
         function updateBreadcrumb() {
             const bcContainer = document.getElementById("breadcrumb-container");
             const backBtn = document.getElementById("backBtn");
-            
-            // 1. 處理返回按鈕顯示
-            if (pathStack.length > 0) {
-                backBtn.classList.remove("hidden");
-            } else {
-                backBtn.classList.add("hidden");
-            }
-
-            // 2. 產生路徑 HTML
+            if (pathStack.length > 0) backBtn.classList.remove("hidden");
+            else backBtn.classList.add("hidden");
             let html = `<span class="breadcrumb-item" onclick="jumpTo(-1)">首頁</span>`;
-            
             pathStack.forEach((folder, index) => {
                 html += `<span class="breadcrumb-separator">/</span>`;
-                
-                // 如果是最後一個（當前位置），就不能點擊，字體加粗
-                if (index === pathStack.length - 1) {
-                    html += `<span class="breadcrumb-current">${folder.name}</span>`;
-                } else {
-                    html += `<span class="breadcrumb-item" onclick="jumpTo(${index})">${folder.name}</span>`;
-                }
+                if (index === pathStack.length - 1) html += `<span class="breadcrumb-current">${folder.name}</span>`;
+                else html += `<span class="breadcrumb-item" onclick="jumpTo(${index})">${folder.name}</span>`;
             });
-
             bcContainer.innerHTML = html;
         }
-
-        // --- 密碼鎖定功能 ---
-        function checkPassword() {
-            var input = document.getElementById("passwordInput").value;
-            if (input === CONFIG.password) {
-                document.getElementById("login-overlay").style.display = "none";
-                document.getElementById("content").style.display = "block";
-            } else {
-                document.getElementById("error-msg").style.display = "block";
-                document.getElementById("passwordInput").value = "";
-            }
-        }
-        document.getElementById("passwordInput").addEventListener("keypress", function(event) {
-            if (event.key === "Enter") checkPassword();
-        });
-
     </script>
 </body>
 </html>
