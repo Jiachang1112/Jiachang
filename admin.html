@@ -3,55 +3,81 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>網站管理後台</title>
+    <title>網站管理後台 - 全功能版</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
-        /* --- 基礎設定 --- */
-        body { font-family: 'Noto Sans TC', sans-serif; background: #f5f7fa; padding: 20px; color: #333; height: 100vh; display: flex; flex-direction: column; box-sizing: border-box; margin: 0; }
+        /* --- 全域設定 --- */
+        body { font-family: 'Noto Sans TC', sans-serif; background: #f5f7fa; padding: 40px 20px; color: #333; display: flex; justify-content: center; }
+        .container { width: 100%; max-width: 900px; background: #fff; padding: 40px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); min-height: 80vh; display: flex; flex-direction: column; }
         
-        /* 頂部 */
-        header { display: flex; justify-content: space-between; align-items: center; background: white; padding: 15px 30px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin-bottom: 20px; }
-        h1 { margin: 0; font-size: 20px; color: #2c3e50; }
+        /* 頂部 Header */
+        h1 { margin-top: 0; color: #2c3e50; font-size: 24px; border-bottom: 2px solid #eee; padding-bottom: 20px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
         
-        /* 登入遮罩 */
-        #login-panel { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #f5f7fa; z-index: 999; display: flex; justify-content: center; align-items: center; flex-direction: column; }
-        .login-box { background: white; padding: 40px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); width: 300px; text-align: center; }
-        input { width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
-        
-        /* --- 🟢 檔案總管區域 --- */
-        .manager-container { display: flex; flex-grow: 1; gap: 20px; height: 100%; overflow: hidden; }
-        
-        /* 左側：樹狀結構 */
-        .tree-panel { flex: 1; background: white; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); padding: 20px; overflow-y: auto; border: 2px solid transparent; transition: 0.2s; }
-        .tree-panel.unsaved { border-color: #f39c12; } /* 未儲存時亮黃框 */
+        /* --- Tabs 分頁切換 --- */
+        .tabs { display: flex; margin-bottom: 20px; background: #f0f2f5; padding: 5px; border-radius: 8px; gap: 5px; }
+        .tab { flex: 1; text-align: center; padding: 12px; cursor: pointer; border-radius: 6px; font-weight: bold; color: #666; transition: 0.2s; font-size: 15px; }
+        .tab:hover { background: #eef2f7; }
+        .tab.active { background: #fff; color: #333; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .tab.active[data-type="files"] { color: #2980b9; border-bottom: 2px solid #2980b9; }
+        .tab.active[data-type="user"] { color: #e74c3c; border-bottom: 2px solid #e74c3c; }
+        .tab.active[data-type="notify"] { color: #d35400; border-bottom: 2px solid #d35400; }
 
-        /* 樹狀節點樣式 */
-        .node { padding: 8px 10px; margin: 2px 0; border-radius: 6px; cursor: pointer; display: flex; align-items: center; transition: 0.2s; user-select: none; }
+        /* 內容區塊控制 */
+        .section { display: none; animation: fadeIn 0.3s; flex-grow: 1; }
+        .section.active { display: flex; flex-direction: column; } /* 修改為 flex 以支援檔案總管高度 */
+        
+        /* --- 🟢 分頁 1: 檔案總管樣式 --- */
+        .manager-wrapper { display: flex; gap: 20px; height: 500px; border: 1px solid #eee; border-radius: 12px; padding: 10px; background: #fafafa; }
+        
+        .tree-panel { flex: 2; background: white; border-radius: 8px; border: 1px solid #eee; padding: 15px; overflow-y: auto; }
+        .tree-panel.unsaved { border-color: #f39c12; background: #fffdf5; }
+
+        .action-panel { flex: 1; background: white; border-radius: 8px; border: 1px solid #eee; padding: 15px; display: flex; flex-direction: column; }
+        
+        /* 樹狀節點 */
+        .node { padding: 6px 10px; margin: 2px 0; border-radius: 4px; cursor: pointer; display: flex; align-items: center; transition: 0.2s; user-select: none; font-size: 15px; }
         .node:hover { background: #f0f7ff; }
         .node.folder { font-weight: bold; color: #2c3e50; }
-        .node.file { color: #666; margin-left: 20px; }
-        .node-icon { margin-right: 8px; width: 24px; text-align: center; }
+        .node.file { color: #666; margin-left: 10px; }
+        .node-icon { margin-right: 8px; width: 20px; text-align: center; }
         .indent { margin-left: 20px; border-left: 1px solid #eee; }
 
-        /* 右側：操作面板 */
-        .action-panel { width: 300px; background: white; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); padding: 20px; display: flex; flex-direction: column; }
-        .panel-title { font-size: 16px; font-weight: bold; border-bottom: 2px solid #eee; padding-bottom: 10px; margin-bottom: 15px; }
+        /* --- 🟢 分頁 2 & 3: 通用表單與列表 --- */
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; font-weight: bold; color: #2c3e50; }
+        textarea { width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 16px; box-sizing: border-box; height: 120px; resize: none; }
         
+        /* 會員列表 */
+        .user-list { list-style: none; padding: 0; }
+        .user-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 1px solid #eee; background: white; }
+        .user-info { display: flex; flex-direction: column; }
+        .u-name { font-weight: bold; color: #2c3e50; }
+        .u-status { font-size: 12px; padding: 2px 8px; border-radius: 10px; margin-left: 10px; }
+        .status-pending { background: #ffeaa7; color: #d35400; }
+        .status-approved { background: #55efc4; color: #00b894; }
+
         /* 按鈕群 */
-        .btn { width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-bottom: 10px; transition: 0.2s; }
-        .btn-save { background: #27ae60; color: white; margin-top: auto; } /* 儲存按鈕置底 */
+        .btn { width: 100%; padding: 10px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.2s; margin-top: 5px; }
+        .btn-save { background: #27ae60; color: white; margin-top: auto; }
         .btn-save:hover { background: #219150; }
         .btn-save.disabled { background: #ccc; cursor: default; }
-        
-        /* --- 🟢 右鍵選單 (Context Menu) --- */
+        .btn-post { background-color: #e67e22; color: white; }
+        .btn-clear { background-color: #95a5a6; color: white; margin-top: 10px; }
+        .btn-approve { background: #27ae60; color: white; padding: 6px 12px; width: auto; }
+        .btn-migrate { background: #e74c3c; color: white; font-size: 12px; width: auto; padding: 5px 10px; }
+
+        /* 右鍵選單 */
         #ctx-menu { position: fixed; background: white; border: 1px solid #ddd; box-shadow: 0 5px 15px rgba(0,0,0,0.2); border-radius: 8px; padding: 5px 0; z-index: 1000; display: none; width: 150px; }
-        .ctx-item { padding: 10px 15px; cursor: pointer; font-size: 14px; color: #333; display: flex; align-items: center; }
+        .ctx-item { padding: 10px 15px; cursor: pointer; font-size: 14px; color: #333; }
         .ctx-item:hover { background: #f0f7ff; color: #3498db; }
-        .ctx-item span { margin-right: 10px; }
         .ctx-divider { height: 1px; background: #eee; margin: 5px 0; }
 
-        /* 提示 */
-        .status-bar { margin-top: 10px; font-size: 13px; color: #888; text-align: right; }
+        /* 登入遮罩 */
+        #login-panel { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #f5f7fa; z-index: 999; display: flex; justify-content: center; align-items: center; flex-direction: column; }
+        .login-box { background: white; padding: 40px; border-radius: 16px; width: 300px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        .login-input { width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     </style>
 </head>
 <body>
@@ -59,36 +85,71 @@
     <div id="login-panel">
         <div class="login-box">
             <h3>🔒 管理員登入</h3>
-            <input type="email" id="admEmail" placeholder="Email">
-            <input type="password" id="admPass" placeholder="密碼">
+            <input type="email" id="admEmail" class="login-input" placeholder="Email">
+            <input type="password" id="admPass" class="login-input" placeholder="密碼">
             <button class="btn" style="background:#3498db; color:white;" onclick="doLogin()">登入</button>
-            <p id="loginMsg" style="color:red; font-size:12px;"></p>
+            <p id="loginMsg" style="color:red; font-size:12px; margin-top:10px;"></p>
         </div>
     </div>
 
-    <header id="main-header" style="display:none;">
-        <h1>📂 檔案結構管理</h1>
-        <div>
-            <span id="adminDisplay" style="font-size:14px; margin-right:10px;"></span>
-            <button onclick="migrateFromConfig()" style="font-size:12px; padding:5px 10px; background:#e67e22; color:white; border:none; border-radius:4px; cursor:pointer;">⚠️ 從 Config 匯入 (僅第一次用)</button>
-        </div>
-    </header>
-
-    <div class="manager-container" id="main-panel" style="display:none;">
-        <div class="tree-panel" id="treeRoot" oncontextmenu="return false;">
-            <div style="text-align:center; padding:50px; color:#999;">正在讀取雲端資料...</div>
-        </div>
-
-        <div class="action-panel">
-            <div class="panel-title">操作說明</div>
-            <div style="font-size:14px; color:#555; line-height:1.6; margin-bottom:20px;">
-                1. 對著 <b>資料夾</b> 點擊 <b style="color:#e74c3c">滑鼠右鍵</b>。<br>
-                2. 選擇 <b>新增資料夾</b> 或 <b>新增檔案</b>。<br>
-                3. 操作完畢後，記得按下方綠色按鈕儲存。
+    <div class="container" id="main-panel" style="display:none;">
+        <h1>
+            <span>🛠️ 網站管理後台</span>
+            <div style="display:flex; align-items:center;">
+                <span id="adminName" style="font-size:14px; color:#27ae60; margin-right:10px;"></span>
+                <button class="btn" style="background:#34495e; color:white; width:auto; padding:5px 15px; font-size:12px;" onclick="location.reload()">登出</button>
             </div>
-            
-            <div class="status-bar" id="statusText">資料已同步</div>
-            <button class="btn btn-save disabled" id="saveBtn" onclick="saveToCloud()">💾 儲存變更到雲端</button>
+        </h1>
+
+        <div class="tabs">
+            <div class="tab active" data-type="files" onclick="switchTab('files')">📁 檔案管理 (右鍵操作)</div>
+            <div class="tab" data-type="user" onclick="switchTab('user')">👥 會員審核</div>
+            <div class="tab" data-type="notify" onclick="switchTab('notify')">📢 發布通知</div>
+        </div>
+
+        <div id="sec-files" class="section active">
+            <div class="manager-wrapper">
+                <div class="tree-panel" id="treeRoot" oncontextmenu="return false;">
+                    <div style="text-align:center; padding:50px; color:#999;">讀取中...</div>
+                </div>
+                <div class="action-panel">
+                    <h4 style="margin-top:0;">操作說明</h4>
+                    <p style="font-size:13px; color:#666; line-height:1.5;">
+                        1. 對資料夾點擊 <b style="color:#e74c3c">右鍵</b> 開啟選單。<br>
+                        2. 選擇新增、重新命名或刪除。<br>
+                        3. 完成後請按下方按鈕儲存。
+                    </p>
+                    <button class="btn btn-migrate" onclick="migrateFromConfig()">⚠️ 從 Config.js 重置匯入</button>
+                    
+                    <div style="margin-top:auto;">
+                        <div id="statusText" style="text-align:right; font-size:12px; color:#888; margin-bottom:5px;">資料已同步</div>
+                        <button class="btn btn-save disabled" id="saveBtn" onclick="saveToCloud()">💾 儲存變更到雲端</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="sec-user" class="section">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <h3>註冊會員列表</h3>
+                <button class="btn" style="width:auto; background:#eee; color:#333;" onclick="loadUsers()">🔄 重新整理</button>
+            </div>
+            <ul class="user-list" id="userList"></ul>
+        </div>
+
+        <div id="sec-notify" class="section">
+            <div class="form-group">
+                <label>📢 網站全域公告</label>
+                <textarea id="notifyText" placeholder="輸入公告內容..."></textarea>
+            </div>
+            <div class="form-group">
+                <label>預覽：</label>
+                <div style="background:#fff3cd; color:#856404; padding:10px; border-radius:5px; border:1px solid #ffeeba;">
+                    📢 <span id="previewText">(無)</span>
+                </div>
+            </div>
+            <button class="btn btn-post" onclick="postNotification()">🚀 發布公告</button>
+            <button class="btn btn-clear" onclick="clearNotification()">🗑️ 清除公告</button>
         </div>
     </div>
 
@@ -101,13 +162,12 @@
     </div>
 
     <script src="config.js"></script>
-    
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
 
     <script>
-        // 🟢 貼上你的 Firebase Config
+        // 🟢 Firebase Config
         const firebaseConfig = {
             apiKey: "AIzaSyBZe0HHikgGG9hS3g32jWJ-fzESOTB3Zdw",
             authDomain: "jiachang-2cda4.firebaseapp.com",
@@ -122,29 +182,36 @@
         const auth = firebase.auth();
         const db = firebase.firestore();
 
-        // --- 全域變數 ---
-        let fileStructure = []; // 目前編輯中的結構
-        let currentTarget = null; // 右鍵點到的目標 (資料物件)
-        let isDirty = false; // 是否有未儲存的變更
+        // 全域變數
+        let fileStructure = [];
+        let isDirty = false;
+        let activeItem = null, activeParentArray = null, activeIndex = -1;
 
-        // --- 登入 ---
+        // 登入監聽
         auth.onAuthStateChanged(user => {
             if (user) {
                 document.getElementById('login-panel').style.display = 'none';
-                document.getElementById('main-header').style.display = 'flex';
                 document.getElementById('main-panel').style.display = 'flex';
-                document.getElementById('adminDisplay').innerText = user.email;
-                loadFromCloud(); // 登入後載入資料
+                document.getElementById('adminName').innerText = user.email;
+                
+                // 預設載入
+                loadFromCloud();
+                loadUsers();
+                loadCurrentNotification();
             } else {
                 document.getElementById('login-panel').style.display = 'flex';
-                document.getElementById('main-header').style.display = 'none';
                 document.getElementById('main-panel').style.display = 'none';
             }
         });
-        function doLogin() { auth.signInWithEmailAndPassword(document.getElementById('admEmail').value, document.getElementById('admPass').value).catch(e => document.getElementById('loginMsg').innerText = e.message); }
 
-        // --- 🟢 核心：讀取與儲存 ---
-        
+        function doLogin() {
+            auth.signInWithEmailAndPassword(document.getElementById('admEmail').value, document.getElementById('admPass').value)
+                .catch(e => document.getElementById('loginMsg').innerText = e.message);
+        }
+
+        // ==========================
+        // 🟢 分頁 1: 檔案管理邏輯
+        // ==========================
         function loadFromCloud() {
             db.collection('system').doc('files').get().then(doc => {
                 if (doc.exists && doc.data().items) {
@@ -152,165 +219,109 @@
                     renderTree();
                     markSaved();
                 } else {
-                    document.getElementById('treeRoot').innerHTML = '<div style="text-align:center; padding:50px;">雲端是空的，請點擊上方橘色按鈕匯入 Config</div>';
+                    document.getElementById('treeRoot').innerHTML = '<div style="text-align:center; padding:50px;">雲端無資料，請按匯入</div>';
                 }
-            }).catch(err => alert("讀取失敗：" + err.message));
+            }).catch(e => console.error(e));
         }
 
         function saveToCloud() {
-            if(!isDirty) return;
+            if (!isDirty) return;
             const btn = document.getElementById('saveBtn');
             btn.innerText = "儲存中...";
-            
-            db.collection('system').doc('files').set({ items: fileStructure })
-                .then(() => {
-                    alert("✅ 儲存成功！前台網站已同步更新。");
-                    markSaved();
-                })
-                .catch(err => {
-                    alert("❌ 儲存失敗：" + err.message);
-                    btn.innerText = "💾 儲存變更到雲端";
-                });
+            db.collection('system').doc('files').set({ items: fileStructure }).then(() => {
+                alert("儲存成功！");
+                markSaved();
+            }).catch(e => alert("儲存失敗：" + e.message));
         }
 
-        // --- 搬家功能 (一次性) ---
         function migrateFromConfig() {
-            if(!confirm("這會覆蓋雲端上的所有資料，確定要從 config.js 匯入嗎？")) return;
-            fileStructure = JSON.parse(JSON.stringify(CONFIG.items)); // 深拷貝
+            if(!confirm("確定要從 config.js 覆蓋雲端資料嗎？")) return;
+            fileStructure = JSON.parse(JSON.stringify(CONFIG.items));
             renderTree();
             markDirty();
-            alert("已匯入，請記得按綠色按鈕儲存！");
         }
 
-        // --- 🟢 渲染樹狀結構 (遞迴) ---
         function renderTree() {
             const root = document.getElementById('treeRoot');
             root.innerHTML = '';
-            
-            // 建立一個隱形的「根目錄」方便操作
-            const rootContainer = document.createElement('div');
-            // 如果是空的，顯示提示
-            if(fileStructure.length === 0) {
-                root.innerHTML = '<div style="padding:20px; color:#999; cursor:pointer;" oncontextmenu="openMenu(event, null)">[空白區域] 按右鍵新增資料夾...</div>';
+            if (fileStructure.length === 0) {
+                root.innerHTML = '<div style="padding:20px; color:#999; cursor:pointer;" oncontextmenu="openMenu(event, null)">[按右鍵新增]</div>';
                 return;
             }
-            
             renderNodes(fileStructure, root);
         }
 
         function renderNodes(items, container) {
             items.forEach((item, index) => {
                 const el = document.createElement('div');
-                
                 if (item.type === 'folder') {
-                    // 資料夾
                     el.className = 'node folder';
                     el.innerHTML = `<span class="node-icon">📁</span> ${item.name}`;
                     el.oncontextmenu = (e) => openMenu(e, item, items, index);
-                    
-                    // 子容器
-                    const childContainer = document.createElement('div');
-                    childContainer.className = 'indent';
-                    renderNodes(item.children, childContainer);
-                    
+                    const childBox = document.createElement('div');
+                    childBox.className = 'indent';
+                    renderNodes(item.children, childBox);
                     container.appendChild(el);
-                    container.appendChild(childContainer);
+                    container.appendChild(childBox);
                 } else {
-                    // 檔案
                     el.className = 'node file';
-                    el.innerHTML = `<span class="node-icon">📄</span> ${item.name} <small style="color:#aaa; margin-left:5px;">(${item.path || '連結'})</small>`;
+                    el.innerHTML = `<span class="node-icon">📄</span> ${item.name}`;
                     el.oncontextmenu = (e) => openMenu(e, item, items, index);
                     container.appendChild(el);
                 }
             });
         }
 
-        // --- 🟢 右鍵選單邏輯 ---
-        let activeItem = null; // 當前操作的物件
-        let activeParentArray = null; // 該物件所在的陣列 (用來刪除)
-        let activeIndex = -1; // 該物件的索引
-
+        // 右鍵選單邏輯
         function openMenu(e, item, parentArray, index) {
             e.preventDefault();
             const menu = document.getElementById('ctx-menu');
-            
-            // 紀錄當前操作對象
             activeItem = item;
-            activeParentArray = parentArray || fileStructure; // 如果是點空白處，父陣列就是根目錄
+            activeParentArray = parentArray || fileStructure;
             activeIndex = index;
-
-            // 定位選單
             menu.style.display = 'block';
             menu.style.left = e.pageX + 'px';
             menu.style.top = e.pageY + 'px';
-
-            // 點擊別處關閉選單
-            document.addEventListener('click', closeMenu, { once: true });
+            document.addEventListener('click', () => menu.style.display = 'none', { once: true });
         }
 
-        function closeMenu() { document.getElementById('ctx-menu').style.display = 'none'; }
-
         function ctxAction(action) {
-            closeMenu();
+            document.getElementById('ctx-menu').style.display = 'none';
             markDirty();
-
-            if (action === 'newFolder') {
-                const name = prompt("請輸入資料夾名稱：", "新資料夾");
-                if (!name) return;
-                
-                const newFolder = { type: 'folder', name: name, children: [] };
-                
-                // 如果是對著資料夾點，加進去；否則加在同層
-                if (activeItem && activeItem.type === 'folder') {
-                    activeItem.children.push(newFolder);
-                } else {
-                    activeParentArray.push(newFolder);
-                }
-            }
             
-            else if (action === 'newFile') {
-                const name = prompt("顯示名稱：", "新檔案");
+            if (action === 'newFolder') {
+                const name = prompt("資料夾名稱：", "新資料夾");
                 if (!name) return;
-                const path = prompt("檔案路徑 (file/xxx.pdf) 或 網址：", "file/");
+                const newItem = { type: 'folder', name: name, children: [] };
+                (activeItem && activeItem.type === 'folder' ? activeItem.children : activeParentArray).push(newItem);
+            } else if (action === 'newFile') {
+                const name = prompt("檔案顯示名稱：", "新檔案");
+                if (!name) return;
+                const path = prompt("檔案路徑 (file/xxx.pdf) 或網址：", "file/");
                 
                 let icon = "📄";
                 if(path.includes('youtu')) icon = "🎥";
-                else if(path.endsWith('jpg') || path.endsWith('png')) icon = "🖼️";
-
-                const newFile = { type: 'file', name: name, path: path, note: '', icon: icon };
+                else if(path.match(/\.(jpg|png)$/i)) icon = "🖼️";
                 
-                if (activeItem && activeItem.type === 'folder') {
-                    activeItem.children.push(newFile);
-                } else {
-                    activeParentArray.push(newFile);
-                }
-            }
-
-            else if (action === 'rename') {
-                if(!activeItem) return;
+                const newItem = { type: 'file', name: name, path: path, note: '', icon: icon };
+                (activeItem && activeItem.type === 'folder' ? activeItem.children : activeParentArray).push(newItem);
+            } else if (action === 'rename' && activeItem) {
                 const newName = prompt("重新命名：", activeItem.name);
                 if (newName) activeItem.name = newName;
+            } else if (action === 'delete' && activeItem) {
+                if(confirm(`刪除「${activeItem.name}」？`)) activeParentArray.splice(activeIndex, 1);
             }
-
-            else if (action === 'delete') {
-                if(!activeItem) return;
-                if(!confirm(`確定要刪除「${activeItem.name}」嗎？`)) return;
-                activeParentArray.splice(activeIndex, 1);
-            }
-
             renderTree();
         }
 
-        // --- 狀態管理 ---
         function markDirty() {
             isDirty = true;
             document.getElementById('treeRoot').classList.add('unsaved');
             const btn = document.getElementById('saveBtn');
             btn.classList.remove('disabled');
-            btn.innerText = "💾 儲存變更到雲端 (有未儲存修改)";
-            document.getElementById('statusText').innerText = "⚠️ 尚未儲存";
+            btn.innerText = "💾 儲存變更到雲端 (未儲存)";
+            document.getElementById('statusText').innerText = "⚠️ 變更未儲存";
         }
-
         function markSaved() {
             isDirty = false;
             document.getElementById('treeRoot').classList.remove('unsaved');
@@ -320,6 +331,70 @@
             document.getElementById('statusText').innerText = "資料已同步";
         }
 
+        // ==========================
+        // 🟢 分頁 2: 會員審核邏輯
+        // ==========================
+        function loadUsers() {
+            const list = document.getElementById('userList');
+            list.innerHTML = '<li style="text-align:center;">讀取中...</li>';
+            db.collection("users").orderBy("createdAt", "desc").get().then(snapshot => {
+                let html = '';
+                snapshot.forEach(doc => {
+                    const u = doc.data();
+                    const isPending = u.status === 'pending';
+                    const date = u.createdAt ? new Date(u.createdAt.seconds*1000).toLocaleDateString() : '';
+                    html += `<li class="user-item">
+                        <div class="user-info">
+                            <div><span class="u-name">${u.name}</span> <span class="u-status ${isPending?'status-pending':'status-approved'}">${isPending?'待審':'已通'}</span></div>
+                            <small style="color:#888;">${u.email} | ${date}</small>
+                        </div>
+                        ${isPending ? `<button class="btn btn-approve" onclick="approveUser('${doc.id}')">核准</button>` : ''}
+                    </li>`;
+                });
+                list.innerHTML = html || '<li style="text-align:center;">無會員</li>';
+            });
+        }
+        function approveUser(uid) {
+            if(confirm("核准此會員？")) db.collection("users").doc(uid).update({status:"approved"}).then(loadUsers);
+        }
+
+        // ==========================
+        // 🟢 分頁 3: 發布通知邏輯
+        // ==========================
+        function loadCurrentNotification() {
+            db.collection("system").doc("announcement").get().then(doc => {
+                const text = (doc.exists && doc.data().active) ? doc.data().text : "";
+                document.getElementById("notifyText").value = text;
+                document.getElementById("previewText").innerText = text || "(無)";
+            });
+            document.getElementById("notifyText").addEventListener("input", function() {
+                document.getElementById("previewText").innerText = this.value || "(無)";
+            });
+        }
+        function postNotification() {
+            const text = document.getElementById("notifyText").value.trim();
+            if(!text) return alert("請輸入內容");
+            db.collection("system").doc("announcement").set({ text: text, active: true, timestamp: new Date() })
+              .then(() => alert("公告已發布！"));
+        }
+        function clearNotification() {
+            if(confirm("清除公告？")) {
+                db.collection("system").doc("announcement").set({ text: "", active: false })
+                  .then(() => {
+                      document.getElementById("notifyText").value = "";
+                      document.getElementById("previewText").innerText = "(無)";
+                      alert("已清除");
+                  });
+            }
+        }
+
+        // --- 分頁切換 ---
+        function switchTab(type) {
+            document.querySelectorAll('.section').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+            document.getElementById('sec-' + type).classList.add('active');
+            document.querySelector(`.tab[data-type="${type}"]`).classList.add('active');
+        }
     </script>
 </body>
 </html>
