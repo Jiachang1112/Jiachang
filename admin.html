@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>網站管理後台 - 雙棲優化版</title>
+    <title>網站管理後台 - 全平台通用版</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
         /* --- 全域設定 --- */
@@ -23,13 +23,12 @@
         .section { display: none; animation: fadeIn 0.3s; flex-grow: 1; }
         .section.active { display: flex; flex-direction: column; }
         
-        /* 🟢 檔案總管 (RWD優化) */
+        /* 🟢 檔案總管佈局 */
         .manager-wrapper { display: flex; gap: 20px; min-height: 500px; border: 1px solid #eee; border-radius: 12px; padding: 10px; background: #fafafa; }
         .tree-panel { flex: 2; background: white; border-radius: 8px; border: 1px solid #eee; padding: 15px; overflow-y: auto; position: relative; }
         .tree-panel.unsaved { border-color: #f39c12; background: #fffdf5; }
         .action-panel { flex: 1; background: white; border-radius: 8px; border: 1px solid #eee; padding: 15px; display: flex; flex-direction: column; }
         
-        /* 手機版變成上下排列 */
         @media (max-width: 768px) {
             .manager-wrapper { flex-direction: column; height: auto; }
             .tree-panel { min-height: 400px; }
@@ -38,15 +37,16 @@
             .container { padding: 15px; }
         }
 
-        /* 樹狀節點 */
+        /* 🟢 樹狀節點樣式 (包含選單按鈕) */
         .node { 
-            padding: 8px 10px; margin: 4px 0; border-radius: 6px; 
-            display: flex; align-items: center; justify-content: space-between; /* 讓內容跟按鈕分開 */
+            padding: 6px 10px; margin: 4px 0; border-radius: 6px; 
+            display: flex; align-items: center; justify-content: space-between; /* 關鍵：讓文字靠左，按鈕靠右 */
             transition: 0.2s; user-select: none; font-size: 15px; background: #fff; border: 1px solid transparent;
         }
         .node:hover { background: #f0f7ff; border-color: #d6eaf8; }
         
-        .node-content { display: flex; align-items: center; flex-grow: 1; overflow: hidden; }
+        /* 節點內容區 */
+        .node-content { display: flex; align-items: center; flex-grow: 1; overflow: hidden; cursor: pointer; }
         .node.folder .node-content { font-weight: bold; color: #2c3e50; }
         .node.file .node-content { color: #666; }
         .node-icon { margin-right: 8px; width: 24px; text-align: center; flex-shrink: 0; }
@@ -54,14 +54,14 @@
         
         .indent { margin-left: 20px; border-left: 1px solid #eee; }
 
-        /* 🟢 選單按鈕 (Meatballs Menu) */
+        /* 🟢 選單按鈕 (三個點) */
         .node-menu-btn {
-            padding: 4px 10px; color: #aaa; cursor: pointer; font-weight: bold; font-size: 18px;
-            border-radius: 4px; transition: 0.2s; flex-shrink: 0;
+            padding: 4px 8px; color: #aaa; cursor: pointer; font-weight: bold; font-size: 18px;
+            border-radius: 4px; transition: 0.2s; flex-shrink: 0; margin-left: 10px;
         }
         .node-menu-btn:hover { background: #e0e0e0; color: #333; }
         
-        /* 🟢 新增根目錄按鈕 */
+        /* 新增根目錄按鈕 */
         .add-root-btn {
             display: flex; align-items: center; justify-content: center;
             margin-top: 15px; padding: 12px;
@@ -90,9 +90,10 @@
         .btn-approve { background: #27ae60; color: white; padding: 6px 12px; width: auto; font-size: 13px; }
         .btn-migrate { background: #e74c3c; color: white; font-size: 12px; width: auto; padding: 5px 10px; }
 
-        /* 右鍵選單 */
+        /* 🟢 右鍵選單 (Context Menu) */
         #ctx-menu { position: fixed; background: white; border: 1px solid #ddd; box-shadow: 0 5px 15px rgba(0,0,0,0.2); border-radius: 8px; padding: 5px 0; z-index: 1000; display: none; width: 160px; }
-        .ctx-item { padding: 12px 15px; cursor: pointer; font-size: 15px; color: #333; }
+        .ctx-item { padding: 12px 15px; cursor: pointer; font-size: 15px; color: #333; display: flex; align-items: center; }
+        .ctx-item span { margin-right: 10px; width: 20px; text-align: center; }
         .ctx-item:hover { background: #f0f7ff; color: #3498db; }
         .ctx-divider { height: 1px; background: #eee; margin: 5px 0; }
 
@@ -181,9 +182,9 @@
                 <div class="action-panel">
                     <h4 style="margin-top:0;">操作說明</h4>
                     <p style="font-size:13px; color:#666; line-height:1.6;">
-                        1. 電腦版可點擊 <b style="color:#e74c3c">右鍵</b> 操作。<br>
-                        2. 手機版請點擊項目右側的 <b style="color:#3498db">⋮</b> 按鈕。<br>
-                        3. 如需新增最外層資料夾，請點擊下方的虛線按鈕。<br>
+                        1. 點擊右側 <b style="color:#3498db">⋮</b> 按鈕開啟選單。<br>
+                        2. 電腦版亦可支援 <b style="color:#e74c3c">右鍵</b> 操作。<br>
+                        3. 如需新增大資料夾，請按下方虛線按鈕。<br>
                         4. 操作後請務必按儲存。
                     </p>
                     <button class="btn btn-migrate" onclick="migrateFromConfig()">⚠️ 從 Config.js 重置匯入</button>
@@ -271,7 +272,7 @@
         }
 
         // ==========================
-        // 🟢 檔案管理 (雙軌操作)
+        // 🟢 檔案管理 (雙軌操作：右鍵 + 按鈕)
         // ==========================
         function loadFromCloud() {
             db.collection('system').doc('files').get().then(doc => {
@@ -303,17 +304,15 @@
             const root = document.getElementById('treeRoot');
             root.innerHTML = '';
             
-            // 渲染既有節點
             if (fileStructure.length > 0) {
                 renderNodes(fileStructure, root);
             }
 
-            // 🟢 新增：底部的「新增根目錄資料夾」按鈕 (解決手機無法按右鍵新增大資料夾的問題)
+            // 🟢 新增：底部的「新增根目錄資料夾」按鈕
             const addRootBtn = document.createElement('div');
             addRootBtn.className = 'add-root-btn';
             addRootBtn.innerHTML = '<span>➕ 新增根目錄資料夾</span>';
             addRootBtn.onclick = () => {
-                // 手動觸發新增根目錄邏輯
                 activeItem = null; 
                 activeParentArray = fileStructure; 
                 ctxAction('newFolder');
@@ -324,14 +323,15 @@
         function renderNodes(items, container) {
             items.forEach((item, index) => {
                 const el = document.createElement('div');
+                // 🟢 每個節點都加上 ⋮ 按鈕
                 const menuBtn = `<span class="node-menu-btn" onclick="openMenu(event, this.parentElement.itemRef, this.parentElement.parentRef, ${index})">⋮</span>`;
                 
-                // 將資料綁定到 DOM 元素上，方便點擊時取用
                 el.itemRef = item;
                 el.parentRef = items;
 
                 if (item.type === 'folder') {
                     el.className = 'node folder';
+                    // 內容區 + 按鈕區
                     el.innerHTML = `<div class="node-content"><span class="node-icon">📁</span> <span class="node-text">${item.name}</span></div> ${menuBtn}`;
                     el.oncontextmenu = (e) => { e.stopPropagation(); openMenu(e, item, items, index); };
                     
@@ -358,16 +358,20 @@
             activeParentArray = parentArray || fileStructure; 
             activeIndex = index;
             
-            // 計算位置：如果是滑鼠(右鍵)，用 e.page；如果是按鈕(點擊)，用按鈕位置
+            // 計算位置：如果是滑鼠右鍵(type=contextmenu)，用滑鼠座標
+            // 如果是點擊按鈕(type=click)，顯示在按鈕附近
             let x, y;
             if(e.type === 'click') {
                 const rect = e.target.getBoundingClientRect();
-                x = rect.left - 100; // 往左一點避免超出螢幕
+                x = rect.left - 100; // 稍微往左一點
                 y = rect.bottom + 5;
             } else {
                 x = e.pageX;
                 y = e.pageY;
             }
+
+            // 邊界檢查 (簡單版)
+            if(x < 10) x = 10;
 
             menu.style.display = 'block'; 
             menu.style.left = x + 'px'; 
