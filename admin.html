@@ -10,10 +10,9 @@
         body { font-family: 'Noto Sans TC', sans-serif; background: #f5f7fa; padding: 40px 20px; color: #333; display: flex; justify-content: center; }
         .container { width: 100%; max-width: 900px; background: #fff; padding: 40px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); min-height: 80vh; display: flex; flex-direction: column; }
         
-        /* 頂部 Header */
         h1 { margin-top: 0; color: #2c3e50; font-size: 24px; border-bottom: 2px solid #eee; padding-bottom: 20px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
         
-        /* --- Tabs 分頁切換 --- */
+        /* Tabs */
         .tabs { display: flex; margin-bottom: 20px; background: #f0f2f5; padding: 5px; border-radius: 8px; gap: 5px; }
         .tab { flex: 1; text-align: center; padding: 12px; cursor: pointer; border-radius: 6px; font-weight: bold; color: #666; transition: 0.2s; font-size: 15px; }
         .tab:hover { background: #eef2f7; }
@@ -22,19 +21,15 @@
         .tab.active[data-type="user"] { color: #e74c3c; border-bottom: 2px solid #e74c3c; }
         .tab.active[data-type="notify"] { color: #d35400; border-bottom: 2px solid #d35400; }
 
-        /* 內容區塊控制 */
         .section { display: none; animation: fadeIn 0.3s; flex-grow: 1; }
-        .section.active { display: flex; flex-direction: column; } /* 修改為 flex 以支援檔案總管高度 */
+        .section.active { display: flex; flex-direction: column; }
         
-        /* --- 🟢 分頁 1: 檔案總管樣式 --- */
+        /* 檔案總管 */
         .manager-wrapper { display: flex; gap: 20px; height: 500px; border: 1px solid #eee; border-radius: 12px; padding: 10px; background: #fafafa; }
-        
         .tree-panel { flex: 2; background: white; border-radius: 8px; border: 1px solid #eee; padding: 15px; overflow-y: auto; }
         .tree-panel.unsaved { border-color: #f39c12; background: #fffdf5; }
-
         .action-panel { flex: 1; background: white; border-radius: 8px; border: 1px solid #eee; padding: 15px; display: flex; flex-direction: column; }
         
-        /* 樹狀節點 */
         .node { padding: 6px 10px; margin: 2px 0; border-radius: 4px; cursor: pointer; display: flex; align-items: center; transition: 0.2s; user-select: none; font-size: 15px; }
         .node:hover { background: #f0f7ff; }
         .node.folder { font-weight: bold; color: #2c3e50; }
@@ -42,21 +37,17 @@
         .node-icon { margin-right: 8px; width: 20px; text-align: center; }
         .indent { margin-left: 20px; border-left: 1px solid #eee; }
 
-        /* --- 🟢 分頁 2 & 3: 通用表單與列表 --- */
+        /* 通用元件 */
         .form-group { margin-bottom: 20px; }
         label { display: block; margin-bottom: 8px; font-weight: bold; color: #2c3e50; }
         textarea { width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 16px; box-sizing: border-box; height: 120px; resize: none; }
         
-        /* 會員列表 */
         .user-list { list-style: none; padding: 0; }
         .user-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 1px solid #eee; background: white; }
-        .user-info { display: flex; flex-direction: column; }
-        .u-name { font-weight: bold; color: #2c3e50; }
         .u-status { font-size: 12px; padding: 2px 8px; border-radius: 10px; margin-left: 10px; }
         .status-pending { background: #ffeaa7; color: #d35400; }
         .status-approved { background: #55efc4; color: #00b894; }
 
-        /* 按鈕群 */
         .btn { width: 100%; padding: 10px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.2s; margin-top: 5px; }
         .btn-save { background: #27ae60; color: white; margin-top: auto; }
         .btn-save:hover { background: #219150; }
@@ -77,10 +68,69 @@
         .login-box { background: white; padding: 40px; border-radius: 16px; width: 300px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
         .login-input { width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
 
+        /* 🟢 自訂 Modal (漂亮對話框) */
+        #custom-modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(4px);
+            z-index: 2000; display: none;
+            justify-content: center; align-items: center;
+            opacity: 0; transition: opacity 0.3s;
+        }
+        #custom-modal-overlay.show { opacity: 1; }
+        
+        .modal-box {
+            background: white; width: 100%; max-width: 400px;
+            padding: 30px; border-radius: 16px;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.2);
+            text-align: center; transform: scale(0.9); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        #custom-modal-overlay.show .modal-box { transform: scale(1); }
+
+        .modal-icon-wrapper {
+            width: 60px; height: 60px; margin: 0 auto 15px;
+            border-radius: 50%; display: flex; justify-content: center; align-items: center;
+            font-size: 30px;
+        }
+        .icon-blue { background: #e3f2fd; color: #2196f3; }
+        .icon-red { background: #ffebee; color: #f44336; }
+
+        .modal-title { font-size: 20px; font-weight: bold; color: #333; margin-bottom: 5px; }
+        .modal-desc { font-size: 14px; color: #666; margin-bottom: 20px; }
+
+        .modal-input {
+            width: 100%; padding: 12px; margin-bottom: 10px;
+            border: 2px solid #eee; border-radius: 8px;
+            font-size: 16px; box-sizing: border-box;
+            transition: 0.2s;
+        }
+        .modal-input:focus { border-color: #3498db; outline: none; }
+
+        .modal-btn-group { display: flex; gap: 10px; margin-top: 10px; }
+        .modal-btn { flex: 1; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 15px; }
+        .btn-cancel { background: #f1f2f6; color: #7f8c8d; }
+        .btn-confirm { background: #3498db; color: white; }
+        .btn-confirm.danger { background: #e74c3c; }
+
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     </style>
 </head>
 <body>
+
+    <div id="custom-modal-overlay">
+        <div class="modal-box">
+            <div id="modal-icon" class="modal-icon-wrapper icon-blue">✏️</div>
+            <div id="modal-title" class="modal-title">標題</div>
+            <div id="modal-desc" class="modal-desc">說明文字</div>
+            
+            <div id="modal-content">
+                </div>
+
+            <div class="modal-btn-group">
+                <button class="modal-btn btn-cancel" onclick="closeModal()">取消</button>
+                <button id="modal-confirm-btn" class="modal-btn btn-confirm">確定</button>
+            </div>
+        </div>
+    </div>
 
     <div id="login-panel">
         <div class="login-box">
@@ -102,7 +152,7 @@
         </h1>
 
         <div class="tabs">
-            <div class="tab active" data-type="files" onclick="switchTab('files')">📁 檔案管理 (右鍵操作)</div>
+            <div class="tab active" data-type="files" onclick="switchTab('files')">📁 檔案管理</div>
             <div class="tab" data-type="user" onclick="switchTab('user')">👥 會員審核</div>
             <div class="tab" data-type="notify" onclick="switchTab('notify')">📢 發布通知</div>
         </div>
@@ -115,7 +165,7 @@
                 <div class="action-panel">
                     <h4 style="margin-top:0;">操作說明</h4>
                     <p style="font-size:13px; color:#666; line-height:1.5;">
-                        1. 對資料夾點擊 <b style="color:#e74c3c">右鍵</b> 開啟選單。<br>
+                        1. 對資料夾點擊 <b style="color:#e74c3c">右鍵</b>。<br>
                         2. 選擇新增、重新命名或刪除。<br>
                         3. 完成後請按下方按鈕儲存。
                     </p>
@@ -193,11 +243,7 @@
                 document.getElementById('login-panel').style.display = 'none';
                 document.getElementById('main-panel').style.display = 'flex';
                 document.getElementById('adminName').innerText = user.email;
-                
-                // 預設載入
-                loadFromCloud();
-                loadUsers();
-                loadCurrentNotification();
+                loadFromCloud(); loadUsers(); loadCurrentNotification();
             } else {
                 document.getElementById('login-panel').style.display = 'flex';
                 document.getElementById('main-panel').style.display = 'none';
@@ -210,14 +256,13 @@
         }
 
         // ==========================
-        // 🟢 分頁 1: 檔案管理邏輯
+        // 🟢 檔案管理 & Modal 邏輯
         // ==========================
         function loadFromCloud() {
             db.collection('system').doc('files').get().then(doc => {
                 if (doc.exists && doc.data().items) {
                     fileStructure = doc.data().items;
-                    renderTree();
-                    markSaved();
+                    renderTree(); markSaved();
                 } else {
                     document.getElementById('treeRoot').innerHTML = '<div style="text-align:center; padding:50px;">雲端無資料，請按匯入</div>';
                 }
@@ -229,23 +274,21 @@
             const btn = document.getElementById('saveBtn');
             btn.innerText = "儲存中...";
             db.collection('system').doc('files').set({ items: fileStructure }).then(() => {
-                alert("儲存成功！");
-                markSaved();
+                alert("儲存成功！"); markSaved();
             }).catch(e => alert("儲存失敗：" + e.message));
         }
 
         function migrateFromConfig() {
             if(!confirm("確定要從 config.js 覆蓋雲端資料嗎？")) return;
             fileStructure = JSON.parse(JSON.stringify(CONFIG.items));
-            renderTree();
-            markDirty();
+            renderTree(); markDirty();
         }
 
         function renderTree() {
             const root = document.getElementById('treeRoot');
             root.innerHTML = '';
             if (fileStructure.length === 0) {
-                root.innerHTML = '<div style="padding:20px; color:#999; cursor:pointer;" oncontextmenu="openMenu(event, null)">[按右鍵新增]</div>';
+                root.innerHTML = '<div style="padding:20px; color:#999; cursor:pointer;" oncontextmenu="openMenu(event, null)">[空白區域] 右鍵新增</div>';
                 return;
             }
             renderNodes(fileStructure, root);
@@ -261,8 +304,7 @@
                     const childBox = document.createElement('div');
                     childBox.className = 'indent';
                     renderNodes(item.children, childBox);
-                    container.appendChild(el);
-                    container.appendChild(childBox);
+                    container.appendChild(el); container.appendChild(childBox);
                 } else {
                     el.className = 'node file';
                     el.innerHTML = `<span class="node-icon">📄</span> ${item.name}`;
@@ -272,46 +314,98 @@
             });
         }
 
-        // 右鍵選單邏輯
         function openMenu(e, item, parentArray, index) {
             e.preventDefault();
             const menu = document.getElementById('ctx-menu');
-            activeItem = item;
-            activeParentArray = parentArray || fileStructure;
-            activeIndex = index;
-            menu.style.display = 'block';
-            menu.style.left = e.pageX + 'px';
-            menu.style.top = e.pageY + 'px';
+            activeItem = item; activeParentArray = parentArray || fileStructure; activeIndex = index;
+            menu.style.display = 'block'; menu.style.left = e.pageX + 'px'; menu.style.top = e.pageY + 'px';
             document.addEventListener('click', () => menu.style.display = 'none', { once: true });
         }
 
+        // 🟢 核心：使用漂亮 Modal 取代 prompt
         function ctxAction(action) {
             document.getElementById('ctx-menu').style.display = 'none';
-            markDirty();
             
             if (action === 'newFolder') {
-                const name = prompt("資料夾名稱：", "新資料夾");
-                if (!name) return;
-                const newItem = { type: 'folder', name: name, children: [] };
-                (activeItem && activeItem.type === 'folder' ? activeItem.children : activeParentArray).push(newItem);
+                showModal('input', '新增資料夾', '請輸入資料夾名稱', [{id:'folderName', placeholder:'例如：第三章'}], 'icon-blue', '📁', (vals) => {
+                    if (!vals.folderName) return;
+                    const newItem = { type: 'folder', name: vals.folderName, children: [] };
+                    (activeItem && activeItem.type === 'folder' ? activeItem.children : activeParentArray).push(newItem);
+                    finishAction();
+                });
             } else if (action === 'newFile') {
-                const name = prompt("檔案顯示名稱：", "新檔案");
-                if (!name) return;
-                const path = prompt("檔案路徑 (file/xxx.pdf) 或網址：", "file/");
-                
-                let icon = "📄";
-                if(path.includes('youtu')) icon = "🎥";
-                else if(path.match(/\.(jpg|png)$/i)) icon = "🖼️";
-                
-                const newItem = { type: 'file', name: name, path: path, note: '', icon: icon };
-                (activeItem && activeItem.type === 'folder' ? activeItem.children : activeParentArray).push(newItem);
+                showModal('input', '新增檔案/連結', '請輸入名稱與路徑', [
+                    {id:'fileName', placeholder:'顯示名稱 (例：講義.pdf)'},
+                    {id:'filePath', placeholder:'路徑或網址 (例：file/doc.pdf)'}
+                ], 'icon-blue', '📄', (vals) => {
+                    if (!vals.fileName) return;
+                    let icon = "📄";
+                    if(vals.filePath.includes('youtu')) icon = "🎥";
+                    else if(vals.filePath.match(/\.(jpg|png)$/i)) icon = "🖼️";
+                    
+                    const newItem = { type: 'file', name: vals.fileName, path: vals.filePath, note: '', icon: icon };
+                    (activeItem && activeItem.type === 'folder' ? activeItem.children : activeParentArray).push(newItem);
+                    finishAction();
+                });
             } else if (action === 'rename' && activeItem) {
-                const newName = prompt("重新命名：", activeItem.name);
-                if (newName) activeItem.name = newName;
+                showModal('input', '重新命名', '請輸入新的名稱', [{id:'newName', val:activeItem.name}], 'icon-blue', '✏️', (vals) => {
+                    if (vals.newName) { activeItem.name = vals.newName; finishAction(); }
+                });
             } else if (action === 'delete' && activeItem) {
-                if(confirm(`刪除「${activeItem.name}」？`)) activeParentArray.splice(activeIndex, 1);
+                showModal('confirm', '確認刪除', `確定要刪除「${activeItem.name}」嗎？此動作無法復原。`, [], 'icon-red', '!', () => {
+                    activeParentArray.splice(activeIndex, 1);
+                    finishAction();
+                });
             }
+        }
+
+        function finishAction() {
+            markDirty();
             renderTree();
+            closeModal();
+        }
+
+        // --- 🟢 Modal 控制函式 ---
+        function showModal(type, title, desc, inputs, iconClass, iconText, callback) {
+            const overlay = document.getElementById('custom-modal-overlay');
+            const content = document.getElementById('modal-content');
+            const confirmBtn = document.getElementById('modal-confirm-btn');
+            
+            // 設定外觀
+            document.getElementById('modal-icon').className = 'modal-icon-wrapper ' + iconClass;
+            document.getElementById('modal-icon').innerText = iconText;
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-desc').innerText = desc;
+            
+            // 生成輸入框
+            content.innerHTML = '';
+            inputs.forEach(inp => {
+                const el = document.createElement('input');
+                el.type = 'text'; el.className = 'modal-input';
+                el.id = inp.id; el.placeholder = inp.placeholder || '';
+                if(inp.val) el.value = inp.val;
+                content.appendChild(el);
+            });
+
+            // 設定按鈕
+            confirmBtn.className = 'modal-btn btn-confirm ' + (iconClass === 'icon-red' ? 'danger' : '');
+            
+            // 綁定事件
+            confirmBtn.onclick = () => {
+                const values = {};
+                inputs.forEach(inp => values[inp.id] = document.getElementById(inp.id).value.trim());
+                callback(values);
+            };
+
+            // 顯示
+            overlay.style.display = 'flex';
+            setTimeout(() => overlay.classList.add('show'), 10);
+        }
+
+        function closeModal() {
+            const overlay = document.getElementById('custom-modal-overlay');
+            overlay.classList.remove('show');
+            setTimeout(() => overlay.style.display = 'none', 300);
         }
 
         function markDirty() {
@@ -332,7 +426,7 @@
         }
 
         // ==========================
-        // 🟢 分頁 2: 會員審核邏輯
+        // 其他功能 (會員、公告)
         // ==========================
         function loadUsers() {
             const list = document.getElementById('userList');
@@ -342,11 +436,10 @@
                 snapshot.forEach(doc => {
                     const u = doc.data();
                     const isPending = u.status === 'pending';
-                    const date = u.createdAt ? new Date(u.createdAt.seconds*1000).toLocaleDateString() : '';
                     html += `<li class="user-item">
                         <div class="user-info">
                             <div><span class="u-name">${u.name}</span> <span class="u-status ${isPending?'status-pending':'status-approved'}">${isPending?'待審':'已通'}</span></div>
-                            <small style="color:#888;">${u.email} | ${date}</small>
+                            <small style="color:#888;">${u.email}</small>
                         </div>
                         ${isPending ? `<button class="btn btn-approve" onclick="approveUser('${doc.id}')">核准</button>` : ''}
                     </li>`;
@@ -358,9 +451,6 @@
             if(confirm("核准此會員？")) db.collection("users").doc(uid).update({status:"approved"}).then(loadUsers);
         }
 
-        // ==========================
-        // 🟢 分頁 3: 發布通知邏輯
-        // ==========================
         function loadCurrentNotification() {
             db.collection("system").doc("announcement").get().then(doc => {
                 const text = (doc.exists && doc.data().active) ? doc.data().text : "";
@@ -374,21 +464,12 @@
         function postNotification() {
             const text = document.getElementById("notifyText").value.trim();
             if(!text) return alert("請輸入內容");
-            db.collection("system").doc("announcement").set({ text: text, active: true, timestamp: new Date() })
-              .then(() => alert("公告已發布！"));
+            db.collection("system").doc("announcement").set({ text: text, active: true, timestamp: new Date() }).then(() => alert("公告已發布！"));
         }
         function clearNotification() {
-            if(confirm("清除公告？")) {
-                db.collection("system").doc("announcement").set({ text: "", active: false })
-                  .then(() => {
-                      document.getElementById("notifyText").value = "";
-                      document.getElementById("previewText").innerText = "(無)";
-                      alert("已清除");
-                  });
-            }
+            if(confirm("清除公告？")) db.collection("system").doc("announcement").set({ text: "", active: false }).then(() => { document.getElementById("notifyText").value = ""; document.getElementById("previewText").innerText = "(無)"; alert("已清除"); });
         }
 
-        // --- 分頁切換 ---
         function switchTab(type) {
             document.querySelectorAll('.section').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
