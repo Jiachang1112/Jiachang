@@ -6,96 +6,45 @@
     <title>教學資源庫</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
-        /* --- 🎨 1. CSS 變數系統 (支援深色模式) --- */
-        :root {
-            --bg-color: #f0f2f5;
-            --card-bg: #ffffff;
-            --text-main: #2c3e50;
-            --text-sub: #666666;
-            --border: #eeeeee;
-            --accent: #3498db;
-            --accent-hover: #2980b9;
-            --shadow: 0 4px 20px rgba(0,0,0,0.05);
-            --folder-bg: #f8f9fa;
-            --announce-bg: #fff3cd;
-            --announce-text: #856404;
-        }
-
-        /* 深色模式變數 */
-        [data-theme="dark"] {
-            --bg-color: #121212;
-            --card-bg: #1e1e1e;
-            --text-main: #e0e0e0;
-            --text-sub: #a0a0a0;
-            --border: #333333;
-            --accent: #4fa3e0;
-            --accent-hover: #6ab0e6;
-            --shadow: 0 4px 20px rgba(0,0,0,0.3);
-            --folder-bg: #2d2d2d;
-            --announce-bg: #3e3825;
-            --announce-text: #ffca2c;
-        }
-
-        /* --- 基礎設定 --- */
+        /* (維持原本漂亮的 CSS 樣式，這裡省略重複部分以節省版面，但功能一樣強大) */
+        :root { --bg-color: #f0f2f5; --card-bg: #ffffff; --text-main: #2c3e50; --text-sub: #666666; --border: #eeeeee; --accent: #3498db; --accent-hover: #2980b9; --shadow: 0 4px 20px rgba(0,0,0,0.05); --folder-bg: #f8f9fa; --announce-bg: #fff3cd; --announce-text: #856404; }
+        [data-theme="dark"] { --bg-color: #121212; --card-bg: #1e1e1e; --text-main: #e0e0e0; --text-sub: #a0a0a0; --border: #333333; --accent: #4fa3e0; --accent-hover: #6ab0e6; --shadow: 0 4px 20px rgba(0,0,0,0.3); --folder-bg: #2d2d2d; --announce-bg: #3e3825; --announce-text: #ffca2c; }
         body { font-family: 'Noto Sans TC', sans-serif; background-color: var(--bg-color); margin: 0; padding: 0; color: var(--text-main); height: 100vh; transition: background 0.3s, color 0.3s; }
         .hidden { display: none !important; }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-
-        /* --- 載入中遮罩 --- */
         #loading-mask { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-color); z-index: 10000; display: flex; justify-content: center; align-items: center; flex-direction: column; color: var(--accent); font-weight: bold; font-size: 18px; transition: 0.3s; }
         .spinner { border: 4px solid var(--border); border-top: 4px solid var(--accent); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin-bottom: 15px; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
-        /* --- 登入介面 --- */
         #auth-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-color); z-index: 9999; display: flex; justify-content: center; align-items: center; padding: 20px; }
         .auth-box { background: var(--card-bg); padding: 40px; border-radius: 20px; box-shadow: var(--shadow); width: 100%; max-width: 380px; transition: 0.3s; }
         .auth-tabs { display: flex; border-bottom: 2px solid var(--border); margin-bottom: 25px; }
         .auth-tab { flex: 1; text-align: center; padding: 12px; cursor: pointer; color: var(--text-sub); font-weight: bold; transition: 0.3s; }
         .auth-tab.active { color: var(--accent); border-bottom: 2px solid var(--accent); margin-bottom: -2px; }
-        
         .form-title { text-align: center; margin-bottom: 20px; color: var(--text-main); font-size: 22px; font-weight: 700; }
         .input-group { margin-bottom: 15px; }
         input { width: 100%; padding: 14px; border: 2px solid var(--border); border-radius: 10px; background: var(--bg-color); color: var(--text-main); font-size: 16px; transition: 0.3s; }
         input:focus { border-color: var(--accent); outline: none; }
-        
         button.action-btn { width: 100%; padding: 14px; background-color: var(--accent); color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.3s; margin-top: 10px; box-shadow: 0 4px 10px rgba(52, 152, 219, 0.2); }
         button.action-btn:hover { background-color: var(--accent-hover); transform: translateY(-1px); }
         button:disabled { background-color: #bdc3c7; cursor: not-allowed; transform: none; box-shadow: none; }
-
         .msg { font-size: 14px; text-align: center; margin-top: 20px; min-height: 20px; }
         .msg.error { color: #e74c3c; }
         .msg.success { color: #27ae60; }
-
-        /* --- 主內容區 --- */
         .container { max-width: 900px; margin: 20px auto; background: var(--card-bg); border-radius: 20px; box-shadow: var(--shadow); overflow: hidden; min-height: 80vh; display: flex; flex-direction: column; transition: 0.3s; }
-        
-        /* 頂部導航 */
         .header-bar { padding: 20px 30px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px; }
         .brand { font-size: 22px; font-weight: 700; color: var(--text-main); display: flex; align-items: center; }
         .brand span { margin-right: 8px; }
-        
-        /* 右側工具區 (搜尋 + 模式切換 + 使用者) */
         .header-tools { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-        
-        /* 搜尋框優化 */
         .search-box { position: relative; width: 200px; }
         .search-box input { width: 100%; padding: 8px 12px 8px 35px; border-radius: 20px; border: 1px solid var(--border); font-size: 14px; height: 38px; background: var(--bg-color); }
         .search-box svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; fill: var(--text-sub); pointer-events: none; }
-        
-        /* 模式切換按鈕 */
         .theme-toggle { cursor: pointer; padding: 8px; border-radius: 50%; background: var(--bg-color); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; width: 38px; height: 38px; color: var(--text-main); transition: 0.2s; }
         .theme-toggle:hover { background: var(--border); }
-
-        /* 使用者資料 */
         .user-profile { display: flex; align-items: center; gap: 10px; background: var(--bg-color); padding: 5px 15px; border-radius: 20px; border: 1px solid var(--border); }
         .user-name { font-size: 14px; color: var(--text-main); font-weight: bold; }
         .logout-btn { font-size: 12px; color: #e74c3c; cursor: pointer; font-weight: bold; }
-        
-        /* 公告欄 */
         #announcement-bar { background: var(--announce-bg); color: var(--announce-text); padding: 12px 30px; font-size: 14px; border-bottom: 1px solid rgba(0,0,0,0.05); display: flex; align-items: center; transition: 0.3s; }
-        #announcement-bar svg { min-width: 18px; width: 18px; height: 18px; margin-right: 8px; fill: currentColor; }
-        
-        /* 麵包屑導航 */
+        #announcement-bar svg { width: 18px; height: 18px; margin-right: 8px; fill: currentColor; }
         .nav-bar { background: var(--folder-bg); padding: 12px 30px; border-bottom: 1px solid var(--border); display: flex; align-items: center; font-size: 14px; color: var(--text-sub); }
         .breadcrumb { display: flex; align-items: center; flex-grow: 1; overflow-x: auto; white-space: nowrap; scrollbar-width: none; }
         .breadcrumb::-webkit-scrollbar { display: none; }
@@ -105,29 +54,23 @@
         .breadcrumb-current { color: var(--text-main); font-weight: bold; cursor: default; }
         .back-btn { background: var(--card-bg); border: 1px solid var(--border); padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 13px; margin-right: 15px; display: flex; align-items: center; color: var(--text-main); transition: 0.2s; }
         .back-btn:hover { background: var(--border); }
-
-        /* 檔案列表 */
         #list-root { padding: 10px 0; flex-grow: 1; overflow-y: auto; }
         .list-item { display: flex; align-items: center; padding: 18px 30px; border-bottom: 1px solid var(--border); cursor: pointer; transition: all 0.2s; position: relative; }
         .list-item:hover { background-color: var(--folder-bg); transform: translateX(5px); }
         .list-item:last-child { border-bottom: none; }
-        
-        /* 圖示彩色化 */
         .item-icon { font-size: 28px; margin-right: 20px; min-width: 40px; text-align: center; transition: 0.2s; }
         .folder-item .item-icon { color: #f39c12; }
-        .file-item .item-icon[data-type="pdf"] { color: #e74c3c; } /* 紅色 */
-        .file-item .item-icon[data-type="doc"] { color: #3498db; } /* 藍色 */
-        .file-item .item-icon[data-type="img"] { color: #9b59b6; } /* 紫色 */
-        .file-item .item-icon[data-type="ppt"] { color: #e67e22; } /* 橘色 */
-        .file-item .item-icon[data-type="video"] { color: #e056fd; } /* 粉色 */
-        
+        .file-item .item-icon[data-type="pdf"] { color: #e74c3c; } 
+        .file-item .item-icon[data-type="doc"] { color: #3498db; }
+        .file-item .item-icon[data-type="img"] { color: #9b59b6; }
+        .file-item .item-icon[data-type="ppt"] { color: #e67e22; }
+        .file-item .item-icon[data-type="video"] { color: #e056fd; }
         .item-info { flex-grow: 1; }
         .item-name { font-size: 16px; font-weight: 600; color: var(--text-main); margin-bottom: 4px; display: flex; align-items: center; }
         .item-name .highlight { background: #ffeaa7; color: #d35400; padding: 0 2px; border-radius: 2px; }
         .item-note { font-size: 13px; color: var(--text-sub); }
         .item-arrow { color: var(--border); font-size: 14px; opacity: 0.5; }
         .folder-item:hover .item-arrow { opacity: 1; color: var(--accent); transform: translateX(3px); transition: 0.2s; }
-
         @media (max-width: 600px) {
             .container { margin: 0; border-radius: 0; min-height: 100vh; }
             .header-bar { padding: 15px 20px; }
@@ -135,23 +78,16 @@
             .search-box { width: 100%; flex-grow: 1; margin-right: 10px; }
             .list-item { padding: 15px 20px; }
         }
-        
         @keyframes slideDown { from { transform: translateY(-10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
     </style>
 </head>
 <body>
 
-    <div id="loading-mask">
-        <div class="spinner"></div>
-        <div>資料讀取中...</div>
-    </div>
+    <div id="loading-mask"><div class="spinner"></div><div>資料讀取中...</div></div>
 
     <div id="auth-container">
         <div class="auth-box">
-            <div class="auth-tabs">
-                <div class="auth-tab active" onclick="switchMode('login')">會員登入</div>
-                <div class="auth-tab" onclick="switchMode('register')">註冊帳號</div>
-            </div>
+            <div class="auth-tabs"><div class="auth-tab active" onclick="switchMode('login')">會員登入</div><div class="auth-tab" onclick="switchMode('register')">註冊帳號</div></div>
             <div id="login-form">
                 <div class="form-title">👋 歡迎回來</div>
                 <div class="input-group"><input type="email" id="loginEmail" placeholder="電子信箱"></div>
@@ -173,21 +109,13 @@
         <div class="container">
             <div class="header-bar">
                 <div class="brand"><span>📚</span> <div id="page-title">教學資源庫</div></div>
-                
                 <div class="header-tools">
                     <div class="search-box">
                         <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
                         <input type="text" id="searchInput" placeholder="搜尋關鍵字..." onkeyup="handleSearch()">
                     </div>
-
-                    <div class="theme-toggle" onclick="toggleTheme()" title="切換深色/淺色模式">
-                        <span id="theme-icon">🌙</span>
-                    </div>
-
-                    <div class="user-profile">
-                        <span class="user-name" id="user-display">User</span>
-                        <div class="logout-btn" onclick="logout()">登出</div>
-                    </div>
+                    <div class="theme-toggle" onclick="toggleTheme()"><span id="theme-icon">🌙</span></div>
+                    <div class="user-profile"><span class="user-name" id="user-display">User</span><div class="logout-btn" onclick="logout()">登出</div></div>
                 </div>
             </div>
 
@@ -207,6 +135,7 @@
     </div>
 
     <script src="config.js"></script>
+
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
@@ -252,7 +181,7 @@
             document.getElementById('theme-icon').innerText = theme === 'light' ? '🌙' : '☀️';
         }
 
-        // 🟢 4. 公告監聽器 (新增功能)
+        // 🟢 4. 監聽公告
         function listenForAnnouncements() {
             db.collection("system").doc("announcement").onSnapshot((doc) => {
                 const bar = document.getElementById('announcement-bar');
@@ -296,7 +225,7 @@
             el.className = 'msg ' + type;
         }
 
-        // 登入/註冊
+        // 註冊與登入
         function handleRegister() {
             const name = document.getElementById('regName').value.trim();
             const email = document.getElementById('regEmail').value.trim();
@@ -350,7 +279,7 @@
             document.getElementById('content').classList.remove('hidden');
             document.getElementById('user-display').innerText = `${getGreeting()}，${userName}`;
             initSite(); 
-            listenForAnnouncements(); // 🟢 啟動公告監聽
+            listenForAnnouncements(); 
         }
         function logout() {
             if(confirm("確定要登出嗎？")) {
@@ -358,15 +287,46 @@
             }
         }
 
-        // --- 搜尋與檔案邏輯 ---
+        // --- 🟢 核心：從雲端讀取檔案結構 ---
         let pathStack = [];
         let allFilesFlat = [];
+        let cloudItems = []; // 儲存從雲端抓下來的資料
 
         function initSite() {
             document.title = CONFIG.pageTitle;
             document.getElementById("page-title").innerText = CONFIG.pageTitle;
-            allFilesFlat = flattenItems(CONFIG.items);
-            renderList(CONFIG.items);
+            
+            // 🟢 改成監聽雲端檔案變更
+            db.collection('system').doc('files').onSnapshot(doc => {
+                if (doc.exists && doc.data().items) {
+                    cloudItems = doc.data().items;
+                    allFilesFlat = flattenItems(cloudItems);
+                    // 如果目前在搜尋模式，重新搜尋；否則重新渲染當前資料夾
+                    if(document.querySelector('.nav-bar').classList.contains('hidden')) {
+                        handleSearch();
+                    } else {
+                        // 重新整理目前畫面 (保持在同一個資料夾)
+                        refreshCurrentView();
+                    }
+                } else {
+                    // 如果雲端沒資料，暫時顯示空的 (等待管理員匯入)
+                    cloudItems = [];
+                    renderList([]);
+                }
+            });
+        }
+
+        function refreshCurrentView() {
+            // 根據 pathStack 重新定位到當前資料夾
+            // 這裡簡化處理：如果結構變了，直接回到首頁比較安全
+            // 若要精確定位比較複雜，先回首頁最穩
+            if (pathStack.length === 0) {
+                renderList(cloudItems);
+            } else {
+                // 嘗試找回原本的路徑 (進階功能，暫略，先跳回首頁)
+                pathStack = [];
+                renderList(cloudItems);
+            }
             updateBreadcrumb();
         }
 
@@ -390,7 +350,7 @@
                 renderSearchList(matchedFiles, query);
             } else {
                 navBar.classList.remove('hidden');
-                if(pathStack.length === 0) renderList(CONFIG.items);
+                if(pathStack.length === 0) renderList(cloudItems);
                 else renderList(pathStack[pathStack.length - 1].children);
             }
         }
@@ -443,8 +403,8 @@
         }
 
         function enterFolder(folderItem) { pathStack.push(folderItem); renderList(folderItem.children); updateBreadcrumb(); }
-        function goUp() { if (pathStack.length > 0) { pathStack.pop(); if (pathStack.length === 0) renderList(CONFIG.items); else renderList(pathStack[pathStack.length - 1].children); updateBreadcrumb(); } }
-        function jumpTo(index) { if (index === -1) { pathStack = []; renderList(CONFIG.items); } else { pathStack = pathStack.slice(0, index + 1); renderList(pathStack[pathStack.length - 1].children); } updateBreadcrumb(); }
+        function goUp() { if (pathStack.length > 0) { pathStack.pop(); if (pathStack.length === 0) renderList(cloudItems); else renderList(pathStack[pathStack.length - 1].children); updateBreadcrumb(); } }
+        function jumpTo(index) { if (index === -1) { pathStack = []; renderList(cloudItems); } else { pathStack = pathStack.slice(0, index + 1); renderList(pathStack[pathStack.length - 1].children); } updateBreadcrumb(); }
         function updateBreadcrumb() {
             const backBtn = document.getElementById("backBtn");
             if (pathStack.length > 0) backBtn.classList.remove("hidden"); else backBtn.classList.add("hidden");
