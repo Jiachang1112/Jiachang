@@ -17,6 +17,7 @@
         .tab:hover { background: #eef2f7; }
         .tab.active { background: #fff; color: #333; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .tab.active[data-type="user"] { color: #e74c3c; } /* 會員管理特別色 */
+        .tab.active[data-type="notify"] { color: #d35400; } /* 🟢 新增：通知管理特別色 */
 
         /* --- 內容區域控制 --- */
         .section { display: none; animation: fadeIn 0.3s; }
@@ -25,8 +26,9 @@
         /* --- 表單元件 --- */
         .form-group { margin-bottom: 20px; }
         label { display: block; margin-bottom: 8px; font-weight: bold; color: #2c3e50; }
-        input, select { width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 16px; box-sizing: border-box; }
-        input:focus { border-color: #3498db; outline: none; }
+        input, select, textarea { width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 16px; box-sizing: border-box; }
+        textarea { height: 100px; resize: none; font-family: inherit; }
+        input:focus, textarea:focus { border-color: #3498db; outline: none; }
         .hint { font-size: 13px; color: #888; margin-top: 6px; }
 
         /* --- 按鈕 --- */
@@ -35,9 +37,15 @@
         .btn-gen:hover { background-color: #2980b9; }
         .btn-login { background-color: #2c3e50; width: auto; padding: 8px 20px; font-size: 14px; margin-top: 0; }
         
+        /* 🟢 新增：通知相關按鈕樣式 */
+        .btn-post { background-color: #e67e22; }
+        .btn-post:hover { background-color: #d35400; }
+        .btn-clear { background-color: #95a5a6; margin-top: 10px; }
+        .btn-clear:hover { background-color: #7f8c8d; }
+        
         /* --- 結果區 --- */
         .result-box { background: #282c34; padding: 20px; border-radius: 10px; position: relative; margin-top: 20px; }
-        textarea { width: 100%; height: 120px; background: transparent; border: none; color: #a9b7c6; font-family: monospace; resize: none; outline: none; }
+        textarea#outputCode { height: 120px; background: transparent; border: none; color: #a9b7c6; font-family: monospace; }
         .btn-copy { position: absolute; top: 10px; right: 10px; background: rgba(255,255,255,0.1); color: #fff; border: 1px solid rgba(255,255,255,0.2); padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; }
 
         /* --- 會員列表樣式 --- */
@@ -83,6 +91,7 @@
             <div class="tabs">
                 <div class="tab active" onclick="switchTab('gen')">📝 內容產生器</div>
                 <div class="tab" data-type="user" onclick="switchTab('user')">👥 會員審核</div>
+                <div class="tab" data-type="notify" onclick="switchTab('notify')">📢 發布通知</div>
             </div>
 
             <div id="sec-gen" class="section active">
@@ -94,25 +103,14 @@
                         <option value="folder">📁 新增資料夾</option>
                     </select>
                 </div>
-
-                <div class="form-group">
-                    <label id="nameLabel">顯示名稱</label>
-                    <input type="text" id="itemName" placeholder="例如：第一章講義">
-                </div>
-
+                <div class="form-group"><label id="nameLabel">顯示名稱</label><input type="text" id="itemName" placeholder="例如：第一章講義"></div>
                 <div id="pathGroup" class="form-group">
                     <label id="pathLabel">路徑 / 網址</label>
                     <input type="text" id="itemPath" placeholder="例如：file/講義.pdf">
                     <div class="hint">如果是 GitHub 檔案請加 file/，如果是連結請貼完整網址</div>
                 </div>
-
-                <div id="noteGroup" class="form-group">
-                    <label>備註 (選填)</label>
-                    <input type="text" id="itemNote">
-                </div>
-
+                <div id="noteGroup" class="form-group"><label>備註 (選填)</label><input type="text" id="itemNote"></div>
                 <button class="btn btn-gen" onclick="generateCode()">✨ 產生程式碼</button>
-
                 <div class="result-box" id="resultArea" style="display:none;">
                     <button class="btn-copy" onclick="copyCode()">複製</button>
                     <textarea id="outputCode" readonly></textarea>
@@ -129,6 +127,22 @@
                 </ul>
             </div>
 
+            <div id="sec-notify" class="section">
+                <div class="form-group">
+                    <label>📢 網站全域公告</label>
+                    <div class="hint">輸入文字並送出，所有學生在網站上會立刻看到這條訊息。</div>
+                    <textarea id="notifyText" placeholder="例如：下週二數學小考，請大家準備。"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>預覽效果：</label>
+                    <div style="background:#fff3cd; color:#856404; padding:10px; border-radius:5px; border:1px solid #ffeeba;">
+                        📢 <span id="previewText">(目前無公告)</span>
+                    </div>
+                </div>
+                <button class="btn btn-post" onclick="postNotification()">🚀 發布公告</button>
+                <button class="btn btn-clear" onclick="clearNotification()">🗑️ 清除公告 (隱藏)</button>
+            </div>
+
         </div>
     </div>
 
@@ -137,7 +151,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
 
     <script>
-        // 🟢 請在此處貼上與 index.html 相同的 Firebase 設定
+        // 🟢 這是你的 Firebase 設定
         const firebaseConfig = {
             apiKey: "AIzaSyBZe0HHikgGG9hS3g32jWJ-fzESOTB3Zdw",
             authDomain: "jiachang-2cda4.firebaseapp.com",
@@ -160,7 +174,8 @@
                 document.getElementById('adminLoginBtn').style.display = 'none';
                 document.getElementById('adminName').style.display = 'inline';
                 document.getElementById('adminName').innerText = `(${user.email})`;
-                loadUsers(); // 登入後自動載入會員
+                loadUsers(); // 載入會員
+                loadCurrentNotification(); // 🟢 載入目前公告
             } else {
                 document.getElementById('login-panel').style.display = 'block';
                 document.getElementById('main-panel').style.display = 'none';
@@ -189,7 +204,6 @@
                     list.innerHTML = '<li style="text-align:center; padding:20px;">目前沒有會員資料</li>';
                     return;
                 }
-
                 let html = '';
                 snapshot.forEach(doc => {
                     const u = doc.data();
@@ -223,29 +237,80 @@
             });
         }
 
-        // --- 功能 3：核准會員 ---
         function approveUser(uid) {
             if(!confirm("確定要核准這位會員嗎？")) return;
-
-            db.collection("users").doc(uid).update({
-                status: "approved"
-            }).then(() => {
+            db.collection("users").doc(uid).update({ status: "approved" }).then(() => {
                 alert("核准成功！");
-                loadUsers(); // 重新整理列表
-            }).catch(err => {
-                alert("操作失敗：" + err.message);
+                loadUsers();
+            }).catch(err => { alert("操作失敗：" + err.message); });
+        }
+
+        // --- 🟢 功能 3：公告管理系統 ---
+        
+        // 載入當前公告
+        function loadCurrentNotification() {
+            db.collection("system").doc("announcement").get().then(doc => {
+                if (doc.exists && doc.data().text && doc.data().active) {
+                    const text = doc.data().text;
+                    document.getElementById("notifyText").value = text;
+                    document.getElementById("previewText").innerText = text;
+                } else {
+                    document.getElementById("notifyText").value = "";
+                    document.getElementById("previewText").innerText = "(目前無公告)";
+                }
+            });
+
+            // 綁定輸入框即時預覽
+            document.getElementById("notifyText").addEventListener("input", function() {
+                document.getElementById("previewText").innerText = this.value || "(空白)";
             });
         }
 
-        // --- 介面切換與代碼產生器邏輯 (維持不變) ---
+        // 發布公告
+        function postNotification() {
+            const text = document.getElementById("notifyText").value.trim();
+            if(!text) return alert("請輸入公告內容！");
+            
+            db.collection("system").doc("announcement").set({
+                text: text,
+                timestamp: new Date(),
+                active: true
+            }).then(() => alert("✅ 公告已發布！學生馬上看得到。"))
+              .catch(err => alert("失敗：" + err.message));
+        }
+
+        // 清除公告
+        function clearNotification() {
+            if(!confirm("確定要清除並隱藏公告嗎？")) return;
+            db.collection("system").doc("announcement").set({
+                text: "",
+                active: false
+            }).then(() => {
+                document.getElementById("notifyText").value = "";
+                document.getElementById("previewText").innerText = "(目前無公告)";
+                alert("已清除公告。");
+            });
+        }
+
+        // --- 介面切換與代碼產生器邏輯 ---
         function switchTab(type) {
             document.querySelectorAll('.section').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
             
             document.getElementById('sec-' + type).classList.add('active');
-            // 找到對應的 tab 加 active
-            if(type === 'user') document.querySelector('.tab[data-type="user"]').classList.add('active');
-            else document.querySelectorAll('.tab')[0].classList.add('active');
+            
+            // 處理 Tab 樣式
+            if(type === 'user') {
+                document.querySelector('.tab[data-type="user"]').classList.add('active');
+            } else if (type === 'notify') {
+                document.querySelector('.tab[data-type="notify"]').classList.add('active');
+            } else {
+                document.querySelectorAll('.tab')[0].classList.add('active');
+            }
+            
+            // 切換時順便重新載入資料
+            if(type === 'user') loadUsers();
+            if(type === 'notify') loadCurrentNotification();
         }
 
         function toggleGenFields() {
