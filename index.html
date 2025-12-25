@@ -1,87 +1,146 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="zh-TW" data-theme="light">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>教學資源庫</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
+        /* --- 🎨 1. CSS 變數系統 (支援深色模式) --- */
+        :root {
+            --bg-color: #f0f2f5;
+            --card-bg: #ffffff;
+            --text-main: #2c3e50;
+            --text-sub: #666666;
+            --border: #eeeeee;
+            --accent: #3498db;
+            --accent-hover: #2980b9;
+            --shadow: 0 4px 20px rgba(0,0,0,0.05);
+            --folder-bg: #f8f9fa;
+        }
+
+        /* 深色模式變數 */
+        [data-theme="dark"] {
+            --bg-color: #121212;
+            --card-bg: #1e1e1e;
+            --text-main: #e0e0e0;
+            --text-sub: #a0a0a0;
+            --border: #333333;
+            --accent: #4fa3e0;
+            --accent-hover: #6ab0e6;
+            --shadow: 0 4px 20px rgba(0,0,0,0.3);
+            --folder-bg: #2d2d2d;
+        }
+
         /* --- 基礎設定 --- */
-        body { font-family: 'Noto Sans TC', sans-serif; background-color: #f5f7fa; margin: 0; padding: 0; color: #333; height: 100vh; }
+        body { font-family: 'Noto Sans TC', sans-serif; background-color: var(--bg-color); margin: 0; padding: 0; color: var(--text-main); height: 100vh; transition: background 0.3s, color 0.3s; }
         .hidden { display: none !important; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
         /* --- 載入中遮罩 --- */
-        #loading-mask { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #f5f7fa; z-index: 10000; display: flex; justify-content: center; align-items: center; flex-direction: column; color: #3498db; font-weight: bold; font-size: 18px; }
-        .spinner { border: 4px solid #eee; border-top: 4px solid #3498db; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin-bottom: 15px; }
+        #loading-mask { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-color); z-index: 10000; display: flex; justify-content: center; align-items: center; flex-direction: column; color: var(--accent); font-weight: bold; font-size: 18px; transition: 0.3s; }
+        .spinner { border: 4px solid var(--border); border-top: 4px solid var(--accent); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin-bottom: 15px; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        /* --- 驗證區塊 (維持不變) --- */
-        #auth-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #f5f7fa; z-index: 9999; display: flex; justify-content: center; align-items: center; }
-        .auth-box { background: white; padding: 40px; border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.1); width: 100%; max-width: 380px; }
-        .auth-tabs { display: flex; border-bottom: 2px solid #eee; margin-bottom: 25px; }
-        .auth-tab { flex: 1; text-align: center; padding: 12px; cursor: pointer; color: #999; font-weight: bold; transition: 0.3s; }
-        .auth-tab.active { color: #3498db; border-bottom: 2px solid #3498db; margin-bottom: -2px; }
-        .form-title { text-align: center; margin-bottom: 20px; color: #2c3e50; font-size: 22px; font-weight: 700; }
+        /* --- 登入介面 --- */
+        #auth-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-color); z-index: 9999; display: flex; justify-content: center; align-items: center; padding: 20px; }
+        .auth-box { background: var(--card-bg); padding: 40px; border-radius: 20px; box-shadow: var(--shadow); width: 100%; max-width: 380px; transition: 0.3s; }
+        .auth-tabs { display: flex; border-bottom: 2px solid var(--border); margin-bottom: 25px; }
+        .auth-tab { flex: 1; text-align: center; padding: 12px; cursor: pointer; color: var(--text-sub); font-weight: bold; transition: 0.3s; }
+        .auth-tab.active { color: var(--accent); border-bottom: 2px solid var(--accent); margin-bottom: -2px; }
+        
+        .form-title { text-align: center; margin-bottom: 20px; color: var(--text-main); font-size: 22px; font-weight: 700; }
         .input-group { margin-bottom: 15px; }
-        input { width: 100%; padding: 14px; border: 2px solid #eee; border-radius: 8px; box-sizing: border-box; font-size: 16px; transition: 0.3s; }
-        input:focus { border-color: #3498db; outline: none; background: #fbfdff; }
-        button.action-btn { width: 100%; padding: 14px; background-color: #3498db; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.3s; margin-top: 10px; }
-        button.action-btn:hover { background-color: #2980b9; transform: translateY(-1px); }
-        button:disabled { background-color: #bdc3c7; cursor: not-allowed; transform: none; }
-        .msg { font-size: 14px; text-align: center; margin-top: 20px; min-height: 20px; line-height: 1.5; }
+        input { width: 100%; padding: 14px; border: 2px solid var(--border); border-radius: 10px; background: var(--bg-color); color: var(--text-main); font-size: 16px; transition: 0.3s; }
+        input:focus { border-color: var(--accent); outline: none; }
+        
+        button.action-btn { width: 100%; padding: 14px; background-color: var(--accent); color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.3s; margin-top: 10px; box-shadow: 0 4px 10px rgba(52, 152, 219, 0.2); }
+        button.action-btn:hover { background-color: var(--accent-hover); transform: translateY(-1px); }
+        button:disabled { background-color: #bdc3c7; cursor: not-allowed; transform: none; box-shadow: none; }
+
+        .msg { font-size: 14px; text-align: center; margin-top: 20px; min-height: 20px; }
         .msg.error { color: #e74c3c; }
         .msg.success { color: #27ae60; }
 
         /* --- 主內容區 --- */
-        .container { max-width: 900px; margin: 40px auto; background: #fff; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); overflow: hidden; min-height: 500px; display: flex; flex-direction: column; position: relative; }
-        .header-bar { background: #fff; padding: 20px 30px; border-bottom: 1px solid #eee; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
-        .brand { font-size: 20px; font-weight: 700; color: #2c3e50; display: flex; align-items: center; }
+        .container { max-width: 900px; margin: 20px auto; background: var(--card-bg); border-radius: 20px; box-shadow: var(--shadow); overflow: hidden; min-height: 80vh; display: flex; flex-direction: column; transition: 0.3s; }
         
-        /* User Profile & Logout */
-        .user-profile { display: flex; align-items: center; background: #f8f9fa; padding: 5px 15px; border-radius: 20px; border: 1px solid #eee; }
-        .user-name { font-size: 14px; color: #333; font-weight: bold; margin-right: 10px; }
-        .logout-btn { font-size: 12px; color: #e74c3c; cursor: pointer; padding: 4px 8px; border-radius: 4px; transition: 0.2s; background: white; border: 1px solid #eee; }
-        .logout-btn:hover { background: #fff1f0; border-color: #e74c3c; }
+        /* 頂部導航 */
+        .header-bar { padding: 20px 30px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px; }
+        .brand { font-size: 22px; font-weight: 700; color: var(--text-main); display: flex; align-items: center; }
+        .brand span { margin-right: 8px; }
+        
+        /* 右側工具區 (搜尋 + 模式切換 + 使用者) */
+        .header-tools { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+        
+        /* 搜尋框優化 */
+        .search-box { position: relative; width: 200px; }
+        .search-box input { width: 100%; padding: 8px 12px 8px 35px; border-radius: 20px; border: 1px solid var(--border); font-size: 14px; height: 38px; background: var(--bg-color); }
+        .search-box svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; fill: var(--text-sub); pointer-events: none; }
+        
+        /* 模式切換按鈕 */
+        .theme-toggle { cursor: pointer; padding: 8px; border-radius: 50%; background: var(--bg-color); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; width: 38px; height: 38px; color: var(--text-main); transition: 0.2s; }
+        .theme-toggle:hover { background: var(--border); }
 
-        /* 🟢 新增：公告欄樣式 */
-        #announcement-bar { background: #fff8e1; color: #d35400; padding: 10px 30px; font-size: 14px; border-bottom: 1px solid #ffe0b2; display: flex; align-items: center; }
+        /* 使用者資料 */
+        .user-profile { display: flex; align-items: center; gap: 10px; background: var(--bg-color); padding: 5px 15px; border-radius: 20px; border: 1px solid var(--border); }
+        .user-name { font-size: 14px; color: var(--text-main); font-weight: bold; }
+        .logout-btn { font-size: 12px; color: #e74c3c; cursor: pointer; font-weight: bold; }
+        
+        /* 公告欄 */
+        #announcement-bar { background: linear-gradient(90deg, #fff3cd 0%, #ffecb3 100%); color: #856404; padding: 12px 30px; font-size: 14px; border-bottom: 1px solid rgba(0,0,0,0.05); display: flex; align-items: center; animation: slideDown 0.3s; }
+        [data-theme="dark"] #announcement-bar { background: #3e3825; color: #ffca2c; border-bottom: 1px solid #4d4429; }
         #announcement-bar svg { width: 18px; height: 18px; margin-right: 8px; fill: currentColor; }
-
-        /* 🟢 新增：搜尋框樣式 */
-        .search-box { position: relative; width: 250px; }
-        .search-box input { width: 100%; padding: 8px 12px 8px 35px; border-radius: 20px; border: 1px solid #ddd; font-size: 14px; height: 36px; }
-        .search-box svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; fill: #999; pointer-events: none; }
-
-        .nav-bar { background: #f8f9fa; padding: 12px 30px; border-bottom: 1px solid #eee; display: flex; align-items: center; font-size: 14px; color: #666; }
-        .breadcrumb { display: flex; align-items: center; flex-grow: 1; overflow-x: auto; white-space: nowrap; }
-        .breadcrumb-item { cursor: pointer; color: #0366d6; font-weight: 500; }
+        
+        /* 麵包屑導航 */
+        .nav-bar { background: var(--folder-bg); padding: 12px 30px; border-bottom: 1px solid var(--border); display: flex; align-items: center; font-size: 14px; color: var(--text-sub); }
+        .breadcrumb { display: flex; align-items: center; flex-grow: 1; overflow-x: auto; white-space: nowrap; scrollbar-width: none; }
+        .breadcrumb::-webkit-scrollbar { display: none; }
+        .breadcrumb-item { cursor: pointer; color: var(--accent); font-weight: 500; }
         .breadcrumb-item:hover { text-decoration: underline; }
-        .breadcrumb-separator { margin: 0 8px; color: #aaa; }
-        .breadcrumb-current { color: #333; font-weight: bold; cursor: default; }
-        .back-btn { background: white; border: 1px solid #ddd; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; margin-right: 15px; display: flex; align-items: center; color: #555; }
-        
+        .breadcrumb-separator { margin: 0 8px; color: var(--text-sub); opacity: 0.5; }
+        .breadcrumb-current { color: var(--text-main); font-weight: bold; cursor: default; }
+        .back-btn { background: var(--card-bg); border: 1px solid var(--border); padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 13px; margin-right: 15px; display: flex; align-items: center; color: var(--text-main); transition: 0.2s; }
+        .back-btn:hover { background: var(--border); }
+
+        /* 檔案列表 */
         #list-root { padding: 10px 0; flex-grow: 1; overflow-y: auto; }
-        .list-item { display: flex; align-items: center; padding: 16px 30px; border-bottom: 1px solid #f0f0f0; cursor: pointer; transition: all 0.2s; }
-        .list-item:hover { background-color: #f0f7ff; padding-left: 35px; }
-        .item-icon { font-size: 28px; margin-right: 20px; min-width: 40px; text-align: center; }
-        .item-info { flex-grow: 1; }
-        .item-name { font-size: 16px; font-weight: 600; color: #333; margin-bottom: 4px; }
-        .item-name .highlight { background: #fff700; color: #000; } /* 搜尋高亮 */
-        .item-note { font-size: 13px; color: #888; }
-        .item-arrow { color: #ccc; font-size: 14px; }
-        .folder-item .item-icon { color: #f39c12; }
-        .file-item .item-icon { color: #3498db; }
-        .file-item:hover .item-name { color: #0366d6; }
+        .list-item { display: flex; align-items: center; padding: 18px 30px; border-bottom: 1px solid var(--border); cursor: pointer; transition: all 0.2s; position: relative; }
+        .list-item:hover { background-color: var(--folder-bg); transform: translateX(5px); }
+        .list-item:last-child { border-bottom: none; }
         
-        /* 搜尋結果模式 */
-        .search-mode .folder-item { display: none; } /* 搜尋時隱藏資料夾 */
+        /* 圖示彩色化 */
+        .item-icon { font-size: 28px; margin-right: 20px; min-width: 40px; text-align: center; transition: 0.2s; }
+        .folder-item .item-icon { color: #f39c12; }
+        .file-item .item-icon[data-type="pdf"] { color: #e74c3c; } /* 紅色 */
+        .file-item .item-icon[data-type="doc"] { color: #3498db; } /* 藍色 */
+        .file-item .item-icon[data-type="img"] { color: #9b59b6; } /* 紫色 */
+        .file-item .item-icon[data-type="ppt"] { color: #e67e22; } /* 橘色 */
+        .file-item .item-icon[data-type="video"] { color: #e056fd; } /* 粉色 */
+        
+        .item-info { flex-grow: 1; }
+        .item-name { font-size: 16px; font-weight: 600; color: var(--text-main); margin-bottom: 4px; display: flex; align-items: center; }
+        .item-name .highlight { background: #ffeaa7; color: #d35400; padding: 0 2px; border-radius: 2px; }
+        .item-note { font-size: 13px; color: var(--text-sub); }
+        .item-arrow { color: var(--border); font-size: 14px; opacity: 0.5; }
+        .folder-item:hover .item-arrow { opacity: 1; color: var(--accent); transform: translateX(3px); transition: 0.2s; }
+
+        @media (max-width: 600px) {
+            .container { margin: 0; border-radius: 0; min-height: 100vh; }
+            .header-bar { padding: 15px 20px; }
+            .header-tools { width: 100%; justify-content: space-between; margin-top: 10px; }
+            .search-box { width: 100%; flex-grow: 1; margin-right: 10px; }
+            .list-item { padding: 15px 20px; }
+        }
+        
+        @keyframes slideDown { from { transform: translateY(-10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
     </style>
 </head>
 <body>
 
     <div id="loading-mask">
         <div class="spinner"></div>
-        資料讀取中...
+        <div>資料讀取中...</div>
     </div>
 
     <div id="auth-container">
@@ -91,14 +150,14 @@
                 <div class="auth-tab" onclick="switchMode('register')">註冊帳號</div>
             </div>
             <div id="login-form">
-                <div class="form-title">歡迎回來</div>
+                <div class="form-title">👋 歡迎回來</div>
                 <div class="input-group"><input type="email" id="loginEmail" placeholder="電子信箱"></div>
                 <div class="input-group"><input type="password" id="loginPass" placeholder="密碼"></div>
                 <button class="action-btn" onclick="handleLogin()" id="loginBtn">登入系統</button>
             </div>
             <div id="register-form" class="hidden">
-                <div class="form-title">建立新帳號</div>
-                <div class="input-group"><input type="text" id="regName" placeholder="您的姓名 (給老師看的)"></div>
+                <div class="form-title">📝 建立新帳號</div>
+                <div class="input-group"><input type="text" id="regName" placeholder="您的姓名"></div>
                 <div class="input-group"><input type="email" id="regEmail" placeholder="電子信箱"></div>
                 <div class="input-group"><input type="password" id="regPass" placeholder="設定密碼 (至少6位)"></div>
                 <button class="action-btn" onclick="handleRegister()" id="regBtn" style="background-color:#27ae60;">提交註冊申請</button>
@@ -110,16 +169,22 @@
     <div id="content" class="hidden">
         <div class="container">
             <div class="header-bar">
-                <div class="brand"><span>📂</span> <div id="page-title">教學資源庫</div></div>
+                <div class="brand"><span>📚</span> <div id="page-title">教學資源庫</div></div>
                 
-                <div class="search-box">
-                    <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
-                    <input type="text" id="searchInput" placeholder="搜尋檔案..." onkeyup="handleSearch()">
-                </div>
+                <div class="header-tools">
+                    <div class="search-box">
+                        <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+                        <input type="text" id="searchInput" placeholder="搜尋關鍵字..." onkeyup="handleSearch()">
+                    </div>
 
-                <div class="user-profile">
-                    <span class="user-name" id="user-display">User</span>
-                    <div class="logout-btn" onclick="logout()">登出</div>
+                    <div class="theme-toggle" onclick="toggleTheme()" title="切換深色/淺色模式">
+                        <span id="theme-icon">🌙</span>
+                    </div>
+
+                    <div class="user-profile">
+                        <span class="user-name" id="user-display">User</span>
+                        <div class="logout-btn" onclick="logout()">登出</div>
+                    </div>
                 </div>
             </div>
 
@@ -129,7 +194,9 @@
             </div>
 
             <div class="nav-bar">
-                <button id="backBtn" class="back-btn hidden" onclick="goUp()">返回</button>
+                <button id="backBtn" class="back-btn hidden" onclick="goUp()">
+                    <span style="margin-right:5px;">⬅</span> 返回
+                </button>
                 <div class="breadcrumb" id="breadcrumb-container"></div>
             </div>
             <div id="list-root"></div>
@@ -157,6 +224,36 @@
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
+
+        // 🟢 2. 智慧問候功能
+        function getGreeting() {
+            const hour = new Date().getHours();
+            if (hour < 12) return "早安";
+            if (hour < 18) return "午安";
+            return "晚安";
+        }
+
+        // 🟢 3. 深色模式切換邏輯
+        function initTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            updateThemeIcon(savedTheme);
+        }
+
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            updateThemeIcon(newTheme);
+        }
+
+        function updateThemeIcon(theme) {
+            const icon = document.getElementById('theme-icon');
+            icon.innerText = theme === 'light' ? '🌙' : '☀️';
+        }
+
+        initTheme(); // 初始化主題
 
         // 自動監聽登入
         auth.onAuthStateChanged((user) => {
@@ -239,7 +336,8 @@
         function enterSite(userName) {
             document.getElementById('auth-container').classList.add('hidden');
             document.getElementById('content').classList.remove('hidden');
-            document.getElementById('user-display').innerText = userName;
+            // 🟢 智慧問候
+            document.getElementById('user-display').innerText = `${getGreeting()}，${userName}`;
             initSite(); 
         }
         function logout() {
@@ -248,28 +346,24 @@
             }
         }
 
-        // --- 🟢 搜尋與檔案顯示邏輯 ---
+        // --- 搜尋與檔案顯示邏輯 ---
         let pathStack = [];
-        let allFilesFlat = []; // 用來存所有檔案的扁平列表 (方便搜尋)
+        let allFilesFlat = [];
 
         function initSite() {
             document.title = CONFIG.pageTitle;
             document.getElementById("page-title").innerText = CONFIG.pageTitle;
             
-            // 🟢 設定公告
             if(CONFIG.announcement) {
                 document.getElementById('announcement-bar').classList.remove('hidden');
                 document.getElementById('announcement-text').innerText = CONFIG.announcement;
             }
 
-            // 🟢 預處理：把所有檔案找出來存到 allFilesFlat，方便搜尋
             allFilesFlat = flattenItems(CONFIG.items);
-
             renderList(CONFIG.items);
             updateBreadcrumb();
         }
 
-        // 遞迴函數：把樹狀結構轉成扁平結構
         function flattenItems(items) {
             let result = [];
             items.forEach(item => {
@@ -282,18 +376,14 @@
             return result;
         }
 
-        // 🟢 搜尋功能
         function handleSearch() {
             const query = document.getElementById('searchInput').value.toLowerCase().trim();
             const listRoot = document.getElementById('list-root');
             const navBar = document.querySelector('.nav-bar');
 
             if (query.length > 0) {
-                // 進入搜尋模式
-                navBar.classList.add('hidden'); // 隱藏麵包屑
-                listRoot.classList.add('search-mode');
+                navBar.classList.add('hidden');
                 
-                // 過濾檔案
                 const matchedFiles = allFilesFlat.filter(item => 
                     item.name.toLowerCase().includes(query) || 
                     (item.note && item.note.toLowerCase().includes(query))
@@ -301,11 +391,7 @@
                 
                 renderSearchList(matchedFiles, query);
             } else {
-                // 回復正常模式
                 navBar.classList.remove('hidden');
-                listRoot.classList.remove('search-mode');
-                
-                // 顯示當前資料夾
                 if(pathStack.length === 0) renderList(CONFIG.items);
                 else renderList(pathStack[pathStack.length - 1].children);
             }
@@ -316,51 +402,54 @@
             container.innerHTML = "";
             
             if (items.length === 0) {
-                container.innerHTML = '<div style="text-align:center; padding:40px; color:#999;">沒有找到符合的檔案</div>';
+                container.innerHTML = '<div style="text-align:center; padding:40px; color:var(--text-sub);">沒有找到符合的檔案</div>';
                 return;
             }
 
             items.forEach(item => {
-                // 高亮顯示關鍵字
                 const highlightedName = item.name.replace(new RegExp(query, "gi"), (match) => `<span class="highlight">${match}</span>`);
-
-                const div = document.createElement("div");
-                let icon = item.icon || '📄'; 
-                div.className = "list-item file-item";
-                div.innerHTML = `
-                    <div class="item-icon">${icon}</div>
-                    <div class="item-info">
-                        <div class="item-name">${highlightedName}</div>
-                        <div class="item-note">${item.note || ''}</div>
-                    </div>`;
-                div.onclick = () => window.open(item.path, '_blank');
-                container.appendChild(div);
+                renderFileItem(container, item, highlightedName);
             });
         }
 
-        // 正常渲染列表 (跟之前一樣)
         function renderList(items) {
             const container = document.getElementById("list-root");
             container.innerHTML = ""; 
             if (!items || items.length === 0) {
-                container.innerHTML = '<div style="text-align:center; padding:40px; color:#999;">(此資料夾是空的)</div>';
+                container.innerHTML = '<div style="text-align:center; padding:40px; color:var(--text-sub);">(此資料夾是空的)</div>';
                 return;
             }
             items.forEach(item => {
-                const div = document.createElement("div");
                 if (item.type === 'folder') {
+                    const div = document.createElement("div");
                     div.className = "list-item folder-item";
                     div.innerHTML = `<div class="item-icon">📁</div><div class="item-info"><div class="item-name">${item.name}</div><div class="item-note">${item.children ? item.children.length + ' 個項目' : '空資料夾'}</div></div><div class="item-arrow">➤</div>`;
                     div.onclick = () => enterFolder(item);
+                    container.appendChild(div);
                 } else {
-                    let icon = item.icon || '📄'; 
-                    div.className = "list-item file-item";
-                    div.innerHTML = `<div class="item-icon">${icon}</div><div class="item-info"><div class="item-name">${item.name}</div><div class="item-note">${item.note || ''}</div></div>`;
-                    div.onclick = () => window.open(item.path, '_blank');
+                    renderFileItem(container, item, item.name);
                 }
-                container.appendChild(div);
             });
         }
+
+        // 🟢 4. 輔助功能：根據檔名判斷顏色
+        function renderFileItem(container, item, displayName) {
+            const div = document.createElement("div");
+            let icon = item.icon || '📄';
+            let fileType = 'doc';
+
+            // 判斷檔案類型給顏色
+            if (icon === '🎥' || item.path.includes('youtu')) fileType = 'video';
+            else if (icon === '🖼️' || item.path.match(/\.(jpg|png|jpeg)$/i)) fileType = 'img';
+            else if (item.path.match(/\.pdf$/i)) fileType = 'pdf';
+            else if (item.path.match(/\.ppt(x)?$/i)) fileType = 'ppt';
+            
+            div.className = "list-item file-item";
+            div.innerHTML = `<div class="item-icon" data-type="${fileType}">${icon}</div><div class="item-info"><div class="item-name">${displayName}</div><div class="item-note">${item.note || ''}</div></div>`;
+            div.onclick = () => window.open(item.path, '_blank');
+            container.appendChild(div);
+        }
+
         function enterFolder(folderItem) { pathStack.push(folderItem); renderList(folderItem.children); updateBreadcrumb(); }
         function goUp() { if (pathStack.length > 0) { pathStack.pop(); if (pathStack.length === 0) renderList(CONFIG.items); else renderList(pathStack[pathStack.length - 1].children); updateBreadcrumb(); } }
         function jumpTo(index) { if (index === -1) { pathStack = []; renderList(CONFIG.items); } else { pathStack = pathStack.slice(0, index + 1); renderList(pathStack[pathStack.length - 1].children); } updateBreadcrumb(); }
