@@ -26,7 +26,7 @@
         
         /* 檔案總管 */
         .manager-wrapper { display: flex; gap: 20px; height: 500px; border: 1px solid #eee; border-radius: 12px; padding: 10px; background: #fafafa; }
-        .tree-panel { flex: 2; background: white; border-radius: 8px; border: 1px solid #eee; padding: 15px; overflow-y: auto; }
+        .tree-panel { flex: 2; background: white; border-radius: 8px; border: 1px solid #eee; padding: 15px; overflow-y: auto; cursor: context-menu; } /* 🟢 改為 context-menu 提示可按右鍵 */
         .tree-panel.unsaved { border-color: #f39c12; background: #fffdf5; }
         .action-panel { flex: 1; background: white; border-radius: 8px; border: 1px solid #eee; padding: 15px; display: flex; flex-direction: column; }
         
@@ -159,15 +159,16 @@
 
         <div id="sec-files" class="section active">
             <div class="manager-wrapper">
-                <div class="tree-panel" id="treeRoot" oncontextmenu="return false;">
+                <div class="tree-panel" id="treeRoot" oncontextmenu="openMenu(event, null)">
                     <div style="text-align:center; padding:50px; color:#999;">讀取中...</div>
                 </div>
                 <div class="action-panel">
                     <h4 style="margin-top:0;">操作說明</h4>
                     <p style="font-size:13px; color:#666; line-height:1.5;">
-                        1. 對資料夾點擊 <b style="color:#e74c3c">右鍵</b>。<br>
-                        2. 選擇新增、重新命名或刪除。<br>
-                        3. 完成後請按下方按鈕儲存。
+                        <b>新增大資料夾：</b>在左側 <b style="color:#e74c3c">空白處</b> 點右鍵。<br>
+                        <b>新增子項目：</b>在 <b style="color:#2980b9">資料夾上</b> 點右鍵。<br>
+                        <br>
+                        操作完畢請按下方儲存。
                     </p>
                     <button class="btn btn-migrate" onclick="migrateFromConfig()">⚠️ 從 Config.js 重置匯入</button>
                     
@@ -264,7 +265,7 @@
                     fileStructure = doc.data().items;
                     renderTree(); markSaved();
                 } else {
-                    document.getElementById('treeRoot').innerHTML = '<div style="text-align:center; padding:50px;">雲端無資料，請按匯入</div>';
+                    document.getElementById('treeRoot').innerHTML = '<div style="text-align:center; padding:50px; color:#999;">雲端無資料，請按匯入<br>或右鍵新增</div>';
                 }
             }).catch(e => console.error(e));
         }
@@ -300,7 +301,11 @@
                 if (item.type === 'folder') {
                     el.className = 'node folder';
                     el.innerHTML = `<span class="node-icon">📁</span> ${item.name}`;
-                    el.oncontextmenu = (e) => openMenu(e, item, items, index);
+                    // 🟢 重點：停止事件冒泡，避免觸發背景的「新增大資料夾」
+                    el.oncontextmenu = (e) => {
+                        e.stopPropagation(); 
+                        openMenu(e, item, items, index);
+                    };
                     const childBox = document.createElement('div');
                     childBox.className = 'indent';
                     renderNodes(item.children, childBox);
@@ -308,7 +313,11 @@
                 } else {
                     el.className = 'node file';
                     el.innerHTML = `<span class="node-icon">📄</span> ${item.name}`;
-                    el.oncontextmenu = (e) => openMenu(e, item, items, index);
+                    // 🟢 重點：停止事件冒泡
+                    el.oncontextmenu = (e) => {
+                        e.stopPropagation();
+                        openMenu(e, item, items, index);
+                    };
                     container.appendChild(el);
                 }
             });
@@ -317,7 +326,11 @@
         function openMenu(e, item, parentArray, index) {
             e.preventDefault();
             const menu = document.getElementById('ctx-menu');
-            activeItem = item; activeParentArray = parentArray || fileStructure; activeIndex = index;
+            
+            activeItem = item; // 如果是背景點擊，這裡會是 null
+            activeParentArray = parentArray || fileStructure; // 預設為根目錄
+            activeIndex = index;
+            
             menu.style.display = 'block'; menu.style.left = e.pageX + 'px'; menu.style.top = e.pageY + 'px';
             document.addEventListener('click', () => menu.style.display = 'none', { once: true });
         }
@@ -330,6 +343,7 @@
                 showModal('input', '新增資料夾', '請輸入資料夾名稱', [{id:'folderName', placeholder:'例如：第三章'}], 'icon-blue', '📁', (vals) => {
                     if (!vals.folderName) return;
                     const newItem = { type: 'folder', name: vals.folderName, children: [] };
+                    // 判斷：如果是對著資料夾點，就加入子層；如果是背景點(null)，就加入根目錄
                     (activeItem && activeItem.type === 'folder' ? activeItem.children : activeParentArray).push(newItem);
                     finishAction();
                 });
