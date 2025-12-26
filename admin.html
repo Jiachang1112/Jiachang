@@ -12,6 +12,19 @@
         
         h1 { margin-top: 0; color: #2c3e50; font-size: 22px; border-bottom: 2px solid #eee; padding-bottom: 15px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
         
+        /* 標題連結樣式 (仿照 YT 行為) */
+        .title-link {
+            text-decoration: none; /* 去除底線 */
+            color: inherit; /* 跟隨原本文字顏色 */
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            transition: opacity 0.2s;
+        }
+        .title-link:hover {
+            opacity: 0.8; /* 滑鼠移過去稍微變透明 */
+        }
+
         /* Tabs */
         .tabs { display: flex; margin-bottom: 20px; background: #f0f2f5; padding: 5px; border-radius: 8px; gap: 5px; overflow-x: auto; }
         .tab { flex: 1; text-align: center; padding: 10px; cursor: pointer; border-radius: 6px; font-weight: bold; color: #666; transition: 0.2s; font-size: 14px; white-space: nowrap; }
@@ -81,7 +94,7 @@
         .u-status { font-size: 12px; padding: 3px 10px; border-radius: 12px; margin-left: 10px; font-weight: bold; }
         .status-pending { background: #ffeaa7; color: #d35400; }
         .status-approved { background: #27ae60; color: white; }
-        .status-suspended { background: #e74c3c; color: white; } /* 停用狀態樣式 */
+        .status-suspended { background: #e74c3c; color: white; }
 
         .btn { width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; margin-top: 5px; font-size: 15px; }
         .btn-save { background: #27ae60; color: white; margin-top: auto; }
@@ -92,8 +105,8 @@
         
         /* 按鈕樣式 */
         .btn-action { width: auto; padding: 6px 12px; font-size: 13px; border-radius: 6px; color: white; border: none; cursor: pointer; }
-        .btn-approve { background: #27ae60; } /* 核准 */
-        .btn-suspend { background: #e74c3c; } /* 停用 */
+        .btn-approve { background: #27ae60; }
+        .btn-suspend { background: #e74c3c; }
 
         /* 右鍵選單 */
         #ctx-menu { position: fixed; background: white; border: 1px solid #ddd; box-shadow: 0 5px 15px rgba(0,0,0,0.2); border-radius: 8px; padding: 5px 0; z-index: 1000; display: none; width: 180px; }
@@ -126,60 +139,29 @@
 
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-        /* --- 電腦版專用設定 (當螢幕寬度大於 1024px 時觸發) --- */
+        /* --- 電腦版專用設定 --- */
         @media (min-width: 1024px) {
-            .container {
-                /* 將最大寬度從原本的 900px 改為 95% 或更寬 */
-                max-width: 95%; 
-            }
-
-            /* (選用) 如果你覺得變寬後，左邊檔案區太大，可以調整比例 */
-            .manager-wrapper .tree-panel {
-                flex: 3; /* 讓左邊檔案區佔比較多 */
-            }
-            .manager-wrapper .action-panel {
-                flex: 1; /* 右邊說明區維持較小 */
-                max-width: 350px; /* 限制右邊不要太寬，以免閱讀困難 */
-            }
+            .container { max-width: 95%; }
+            .manager-wrapper .tree-panel { flex: 3; }
+            .manager-wrapper .action-panel { flex: 1; max-width: 350px; }
         }
 
         /* --- 讀取畫面 (Loading) --- */
         #loading-screen {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: #f5f7fa; /* 與背景色相同 */
-            z-index: 9999; /* 確保蓋在最上面 */
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            transition: opacity 0.5s ease-out; /* 淡出動畫 */
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #f5f7fa; z-index: 9999;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            transition: opacity 0.5s ease-out;
         }
-
         .spinner {
-            width: 40px;
-            height: 40px;
+            width: 40px; height: 40px; margin-bottom: 15px;
             border: 4px solid #e0e0e0;
             border-top: 4px solid #3498db; /* 藍色轉圈 */
             border-radius: 50%;
             animation: spin 1s linear infinite;
-            margin-bottom: 15px;
         }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .loading-text {
-            color: #3498db;
-            font-weight: bold;
-            font-size: 16px;
-            letter-spacing: 1px;
-        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .loading-text { color: #3498db; font-weight: bold; font-size: 16px; letter-spacing: 1px; }
     </style>
 </head>
 <body>
@@ -214,7 +196,9 @@
 
     <div class="container" id="main-panel" style="display:none;">
         <h1>
-            <span title="https://jiachang1112.github.io/Jiachang/admin.html" onclick="window.location.href='https://jiachang1112.github.io/Jiachang/admin.html'" style="cursor:pointer;">🛠️ 雲端資料庫</span>
+            <a href="https://jiachang1112.github.io/Jiachang/admin.html" class="title-link" title="https://jiachang1112.github.io/Jiachang/admin.html">
+                🛠️ 雲端資料庫
+            </a>
             <div style="display:flex; align-items:center;">
                 <span id="adminName" style="font-size:14px; color:#27ae60; margin-right:10px;"></span>
                 <button class="btn" style="background:#34495e; color:white; width:auto; padding:6px 15px; font-size:12px;" onclick="location.reload()">登出</button>
@@ -309,29 +293,25 @@
         let activeItem = null, activeParentArray = null, activeIndex = -1;
         let draggedItem = null, draggedParentArray = null, draggedIndex = -1;
 
+        // 🟢 登入狀態監聽與 Loading 邏輯
         auth.onAuthStateChanged(user => {
             const loader = document.getElementById('loading-screen');
             const loginPanel = document.getElementById('login-panel');
             const mainPanel = document.getElementById('main-panel');
 
             if (user) {
-                // --- 使用者已登入 ---
+                // 已登入
                 document.getElementById('adminName').innerText = user.email;
                 loginPanel.style.display = 'none'; 
-                
-                // 這裡先不顯示 mainPanel，也不關閉 loader，而是先讀取資料
-                // 等 loadFromCloud 完成後，它會負責顯示畫面並關閉 loader
+                // 注意：這裡不直接顯示 mainPanel，而是等資料載入完 (loadFromCloud)
                 loadFromCloud(); 
-                
-                // 其他背景載入的資料
                 loadUsers(); 
                 loadCurrentNotification();
             } else {
-                // --- 使用者未登入 ---
+                // 未登入
                 mainPanel.style.display = 'none';
                 loginPanel.style.display = 'flex';
-                
-                // 如果沒登入，直接關閉轉圈圈，顯示登入畫面
+                // 未登入就直接關閉轉圈圈
                 if(loader) loader.style.display = 'none';
             }
         });
@@ -342,7 +322,7 @@
         }
 
         // ==========================
-        // 🟢 檔案管理
+        // 🟢 檔案管理 (含 Loading 關閉邏輯)
         // ==========================
         function loadFromCloud() {
             db.collection('system').doc('files').get().then(doc => {
@@ -354,17 +334,17 @@
                     document.getElementById('treeRoot').innerHTML = '<div style="text-align:center; padding:50px;">雲端無資料，請右鍵新增</div>';
                 }
                 
-                // --- 資料讀取完畢，顯示畫面 ---
-                document.getElementById('main-panel').style.display = 'flex'; // 顯示主畫面
+                // --- 資料讀取完畢，顯示畫面並關閉轉圈圈 ---
+                document.getElementById('main-panel').style.display = 'flex';
                 const loader = document.getElementById('loading-screen');
                 if(loader) {
-                    loader.style.opacity = '0'; // 淡出
-                    setTimeout(() => { loader.style.display = 'none'; }, 500); // 動畫結束後隱藏
+                    loader.style.opacity = '0'; // 淡出效果
+                    setTimeout(() => { loader.style.display = 'none'; }, 500); 
                 }
 
             }).catch(e => {
                 console.error(e);
-                // 就算失敗也要讓使用者進去，不然會卡在轉圈圈
+                // 錯誤時也要顯示畫面，避免卡死
                 document.getElementById('main-panel').style.display = 'flex';
                 document.getElementById('loading-screen').style.display = 'none';
             });
