@@ -405,7 +405,7 @@
             });
         }
 
-       function initSite() {
+        function initSite() {
             document.title = CONFIG.pageTitle;
             document.getElementById("page-title").innerText = CONFIG.pageTitle;
             
@@ -440,6 +440,7 @@
                 // 可以選擇顯示錯誤訊息
             });
         }
+
         // 🟢 核心功能：刷新畫面 (包含排序與篩選邏輯)
         function refreshCurrentView() {
             let itemsToRender = [];
@@ -575,7 +576,27 @@
 
         function renderFileItem(container, item, displayName) {
             const div = document.createElement("div");
-            let icon = item.icon || '📄';
+            
+            // --- 🟢 修改開始：更聰明的圖標判斷邏輯 ---
+            let icon = item.icon; 
+            
+            // 如果資料庫沒指定圖標，我們自動判斷
+            if (!icon) {
+                // 1. 如果副檔名是常見文件 (PDF, Word, PPT)，維持用文件圖標
+                if (item.path && item.path.match(/\.(pdf|doc|docx|ppt|pptx|xls|xlsx)$/i)) {
+                    icon = '📄';
+                } 
+                // 2. 如果都不是上述檔案，但開頭是 http (代表是外部連結)，就用連結圖標
+                else if (item.path && item.path.startsWith('http')) {
+                    icon = '🔗';
+                } 
+                // 3. 其他預設
+                else {
+                    icon = '📄';
+                }
+            }
+            // --- 🟢 修改結束 ---
+
             let fileType = getFileType(item);
             
             // 檢查是否已收藏
