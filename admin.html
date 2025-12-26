@@ -125,6 +125,23 @@
         .btn-confirm.danger { background: #e74c3c; }
 
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* --- 電腦版專用設定 (當螢幕寬度大於 1024px 時觸發) --- */
+@media (min-width: 1024px) {
+    .container {
+        /* 將最大寬度從原本的 900px 改為 95% 或更寬 */
+        max-width: 95%; 
+    }
+
+    /* (選用) 如果你覺得變寬後，左邊檔案區太大，可以調整比例 */
+    .manager-wrapper .tree-panel {
+        flex: 3; /* 讓左邊檔案區佔比較多 */
+    }
+    .manager-wrapper .action-panel {
+        flex: 1; /* 右邊說明區維持較小 */
+        max-width: 350px; /* 限制右邊不要太寬，以免閱讀困難 */
+    }
+}
     </style>
 </head>
 <body>
