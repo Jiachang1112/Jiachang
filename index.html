@@ -406,27 +406,40 @@
         }
 
         function initSite() {
-            document.title = CONFIG.pageTitle;
-            document.getElementById("page-title").innerText = CONFIG.pageTitle;
-            
-            db.collection('system').doc('files').onSnapshot(doc => {
-                if (doc.exists && doc.data().items) {
-                    cloudItems = doc.data().items;
-                    allFilesFlat = flattenItems(cloudItems);
-                    
-                    // 如果目前在搜尋模式，重新搜尋；否則重新整理當前畫面
-                    if(document.querySelector('.nav-bar').classList.contains('hidden') && !isViewFavoritesMode) {
-                        handleSearch();
-                    } else {
-                        refreshCurrentView();
-                    }
-                } else {
-                    cloudItems = [];
-                    renderList([]);
-                }
-            });
-        }
+    document.title = CONFIG.pageTitle;
+    document.getElementById("page-title").innerText = CONFIG.pageTitle;
+    
+    // 🟢 改成監聽雲端檔案變更 (Real-time Listener)
+    // onSnapshot 會在第一次連接時執行一次，之後每次資料變更都會自動再執行一次
+    db.collection('system').doc('files').onSnapshot(doc => {
+        if (doc.exists && doc.data().items) {
+            // 1. 更新全域變數
+            cloudItems = doc.data().items;
+            allFilesFlat = flattenItems(cloudItems);
 
+            // 2. 判斷目前狀態並重新渲染
+            // 如果目前是在「搜尋模式」或是「我的最愛模式」，可能需要特別處理
+            // 這裡簡單起見，我們先判斷是否在搜尋模式
+            const isSearching = document.querySelector('.nav-bar').classList.contains('hidden');
+            
+            if(isSearching && !isViewFavoritesMode) {
+                // 如果正在搜尋，重新執行搜尋以更新結果
+                handleSearch();
+            } else {
+                // 如果在一般瀏覽或最愛模式，重新整理當前畫面
+                refreshCurrentView();
+            }
+        } else {
+            // 如果雲端資料被清空
+            cloudItems = [];
+            allFilesFlat = [];
+            renderList([]);
+        }
+    }, error => {
+        console.error("監聽失敗:", error);
+        // 可以選擇顯示錯誤訊息
+    });
+}
         // 🟢 核心功能：刷新畫面 (包含排序與篩選邏輯)
         function refreshCurrentView() {
             let itemsToRender = [];
