@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>網站管理後台 - 可收合版</title>
+    <title>網站管理後台 - 旗艦版</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
         /* --- 全域設定 --- */
@@ -37,32 +37,36 @@
             .container { padding: 15px; }
         }
 
-        /* 🟢 樹狀節點 (包含收合功能) */
+        /* 🟢 樹狀節點 (包含拖曳樣式) */
         .node { 
             padding: 6px 10px; margin: 4px 0; border-radius: 6px; 
             display: flex; align-items: center; justify-content: space-between;
-            transition: 0.2s; user-select: none; font-size: 15px; background: #fff; border: 1px solid transparent;
+            transition: background 0.2s; user-select: none; font-size: 15px; background: #fff; border: 2px solid transparent; /* 預留邊框給拖曳用 */
         }
         .node:hover { background: #f0f7ff; border-color: #d6eaf8; }
         
-        .node-content { display: flex; align-items: center; flex-grow: 1; overflow: hidden; cursor: pointer; }
+        /* 拖曳中的樣式 */
+        .node.dragging { opacity: 0.5; background: #e0f7fa; border: 2px dashed #00bcd4; }
+        
+        /* 拖曳目標樣式 (放置提示) */
+        .node.drag-over-top { border-top: 3px solid #3498db; } /* 放在上面 */
+        .node.drag-over-bottom { border-bottom: 3px solid #3498db; } /* 放在下面 */
+        .node.drag-over-inside { background: #d4edda; border: 2px dashed #28a745; } /* 放入資料夾 */
+
+        .node-content { display: flex; align-items: center; flex-grow: 1; overflow: hidden; cursor: grab; }
+        .node-content:active { cursor: grabbing; }
         .node.folder .node-content { font-weight: bold; color: #2c3e50; }
         .node.file .node-content { color: #666; }
         
-        /* 🟢 收合箭頭樣式 */
-        .caret { 
-            display: inline-block; width: 24px; text-align: center; 
-            transition: transform 0.2s; color: #999; font-size: 12px; cursor: pointer;
-        }
-        .caret.expanded { transform: rotate(90deg); } /* 展開時旋轉 */
-        .caret.hidden { opacity: 0; pointer-events: none; } /* 檔案的隱形箭頭 (佔位用) */
+        .caret { display: inline-block; width: 24px; text-align: center; transition: transform 0.2s; color: #999; font-size: 12px; cursor: pointer; }
+        .caret.expanded { transform: rotate(90deg); }
+        .caret.hidden { opacity: 0; pointer-events: none; }
 
         .node-icon { margin-right: 8px; width: 24px; text-align: center; flex-shrink: 0; }
         .node-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         
-        /* 🟢 子層級容器 (收合用) */
-        .children-container { margin-left: 20px; border-left: 1px solid #eee; display: block; }
-        .children-container.collapsed { display: none; } /* 收合時隱藏 */
+        .children-container { margin-left: 20px; border-left: 1px solid #eee; display: block; padding-left: 5px; }
+        .children-container.collapsed { display: none; }
 
         .node-menu-btn { padding: 4px 8px; color: #aaa; cursor: pointer; font-weight: bold; font-size: 18px; border-radius: 4px; transition: 0.2s; flex-shrink: 0; margin-left: 10px; }
         .node-menu-btn:hover { background: #e0e0e0; color: #333; }
@@ -91,18 +95,17 @@
         .btn-migrate { background: #e74c3c; color: white; font-size: 12px; width: auto; padding: 5px 10px; }
 
         /* 右鍵選單 */
-        #ctx-menu { position: fixed; background: white; border: 1px solid #ddd; box-shadow: 0 5px 15px rgba(0,0,0,0.2); border-radius: 8px; padding: 5px 0; z-index: 1000; display: none; width: 160px; }
+        #ctx-menu { position: fixed; background: white; border: 1px solid #ddd; box-shadow: 0 5px 15px rgba(0,0,0,0.2); border-radius: 8px; padding: 5px 0; z-index: 1000; display: none; width: 180px; }
         .ctx-item { padding: 12px 15px; cursor: pointer; font-size: 15px; color: #333; display: flex; align-items: center; }
         .ctx-item span { margin-right: 10px; width: 20px; text-align: center; }
         .ctx-item:hover { background: #f0f7ff; color: #3498db; }
         .ctx-divider { height: 1px; background: #eee; margin: 5px 0; }
 
-        /* 登入遮罩 */
+        /* 登入與Modal */
         #login-panel { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #f5f7fa; z-index: 999; display: flex; justify-content: center; align-items: center; flex-direction: column; padding: 20px; }
         .login-box { background: white; padding: 40px; border-radius: 16px; width: 100%; max-width: 350px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
         .login-input { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
 
-        /* Modal */
         #custom-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(4px); z-index: 2000; display: none; justify-content: center; align-items: center; padding: 20px; opacity: 0; transition: opacity 0.3s; }
         #custom-modal-overlay.show { opacity: 1; }
         .modal-box { background: white; width: 100%; max-width: 400px; padding: 30px; border-radius: 16px; box-shadow: 0 15px 40px rgba(0,0,0,0.2); text-align: center; transform: scale(0.9); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
@@ -171,10 +174,11 @@
                 <div class="action-panel">
                     <h4 style="margin-top:0;">操作說明</h4>
                     <p style="font-size:13px; color:#666; line-height:1.6;">
-                        1. 點擊 <b style="color:#2980b9">▶ 箭頭</b> 可收合/展開資料夾。<br>
-                        2. 點擊右側 <b style="color:#3498db">⋮</b> 按鈕開啟選單。<br>
-                        3. 如需新增大資料夾，請按下方虛線按鈕。<br>
-                        4. 操作後請務必按儲存。
+                        1. <b>拖曳排序</b>：按住檔案或資料夾可拖曳調整順序。<br>
+                        2. <b>放入資料夾</b>：拖曳至資料夾「中間」變綠色即可放入。<br>
+                        3. 手機版請用選單的「⬆️ 上移 / ⬇️ 下移」。<br>
+                        4. 點擊 <b style="color:#2980b9">▶ 箭頭</b> 可收合/展開。<br>
+                        5. <b>操作後請務必按儲存。</b>
                     </p>
                     <button class="btn btn-migrate" onclick="migrateFromConfig()">⚠️ 從 Config.js 重置匯入</button>
                     
@@ -214,6 +218,9 @@
         <div class="ctx-item" onclick="ctxAction('newFolder')"><span>📁</span> 新增資料夾</div>
         <div class="ctx-item" onclick="ctxAction('newFile')"><span>📄</span> 新增檔案/連結</div>
         <div class="ctx-divider"></div>
+        <div class="ctx-item" onclick="ctxAction('moveUp')"><span>⬆️</span> 上移</div>
+        <div class="ctx-item" onclick="ctxAction('moveDown')"><span>⬇️</span> 下移</div>
+        <div class="ctx-divider"></div>
         <div class="ctx-item" onclick="ctxAction('rename')"><span>✏️</span> 重新命名</div>
         <div class="ctx-item" onclick="ctxAction('delete')" style="color:#e74c3c;"><span>🗑️</span> 刪除</div>
     </div>
@@ -242,6 +249,11 @@
         let fileStructure = [];
         let isDirty = false;
         let activeItem = null, activeParentArray = null, activeIndex = -1;
+        
+        // 🟢 拖曳變數
+        let draggedItem = null;
+        let draggedParentArray = null;
+        let draggedIndex = -1;
 
         auth.onAuthStateChanged(user => {
             if (user) {
@@ -261,7 +273,7 @@
         }
 
         // ==========================
-        // 🟢 檔案管理 (含收合功能)
+        // 🟢 檔案管理 (拖曳+收合+選單)
         // ==========================
         function loadFromCloud() {
             db.collection('system').doc('files').get().then(doc => {
@@ -300,11 +312,7 @@
             const addRootBtn = document.createElement('div');
             addRootBtn.className = 'add-root-btn';
             addRootBtn.innerHTML = '<span>➕ 新增根目錄資料夾</span>';
-            addRootBtn.onclick = () => {
-                activeItem = null; 
-                activeParentArray = fileStructure; 
-                ctxAction('newFolder');
-            };
+            addRootBtn.onclick = () => { activeItem = null; activeParentArray = fileStructure; ctxAction('newFolder'); };
             root.appendChild(addRootBtn);
         }
 
@@ -315,42 +323,36 @@
                 
                 el.itemRef = item;
                 el.parentRef = items;
+                el.indexRef = index;
+
+                // 🟢 設定拖曳屬性
+                el.setAttribute('draggable', 'true');
+                el.ondragstart = (e) => handleDragStart(e, item, items, index);
+                el.ondragover = (e) => handleDragOver(e, el, item);
+                el.ondragleave = (e) => handleDragLeave(e, el);
+                el.ondrop = (e) => handleDrop(e, item, items, index);
 
                 if (item.type === 'folder') {
-                    // 資料夾: 加入 Caret (箭頭)
                     el.className = 'node folder';
-                    // 預設展開
                     if (item.collapsed === undefined) item.collapsed = false; 
                     const caretClass = item.collapsed ? 'caret' : 'caret expanded';
                     
                     el.innerHTML = `<div class="node-content"><span class="${caretClass}">▶</span><span class="node-icon">📁</span><span class="node-text">${item.name}</span></div> ${menuBtn}`;
-                    
-                    // 點擊事件：右鍵->選單，左鍵(內容區)->切換收合
                     el.oncontextmenu = (e) => { e.stopPropagation(); openMenu(e, item, items, index); };
                     
                     const childBox = document.createElement('div');
                     childBox.className = item.collapsed ? 'children-container collapsed' : 'children-container';
                     
-                    // 🟢 點擊內容區 (包含箭頭和圖示) 切換收合
                     el.querySelector('.node-content').onclick = (e) => {
                         e.stopPropagation();
-                        item.collapsed = !item.collapsed; // 更新狀態
-                        // 更新 UI
-                        const caret = el.querySelector('.caret');
-                        if(item.collapsed) {
-                            caret.classList.remove('expanded');
-                            childBox.classList.add('collapsed');
-                        } else {
-                            caret.classList.add('expanded');
-                            childBox.classList.remove('collapsed');
-                        }
+                        item.collapsed = !item.collapsed;
+                        renderTree(); // 重新渲染最簡單
                     };
 
                     renderNodes(item.children, childBox);
                     container.appendChild(el); 
                     container.appendChild(childBox);
                 } else {
-                    // 檔案: 隱形箭頭佔位
                     el.className = 'node file';
                     el.innerHTML = `<div class="node-content"><span class="caret hidden">▶</span><span class="node-icon">📄</span><span class="node-text">${item.name}</span></div> ${menuBtn}`;
                     el.oncontextmenu = (e) => { e.stopPropagation(); openMenu(e, item, items, index); };
@@ -359,29 +361,106 @@
             });
         }
 
-        function openMenu(e, item, parentArray, index) {
+        // --- 🟢 拖曳處理邏輯 ---
+        function handleDragStart(e, item, parentArray, index) {
+            e.stopPropagation();
+            draggedItem = item;
+            draggedParentArray = parentArray;
+            draggedIndex = index;
+            e.target.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+        }
+
+        function handleDragOver(e, el, targetItem) {
             e.preventDefault();
             e.stopPropagation();
-            const menu = document.getElementById('ctx-menu');
-            activeItem = item; 
-            activeParentArray = parentArray || fileStructure; 
-            activeIndex = index;
+            if (el.classList.contains('dragging')) return; // 不能拖到自己身上
+
+            const rect = el.getBoundingClientRect();
+            const relY = e.clientY - rect.top;
+            const height = rect.height;
             
-            let x, y;
-            if(e.type === 'click') {
-                const rect = e.target.getBoundingClientRect();
-                x = rect.left - 100;
-                y = rect.bottom + 5;
+            // 清除舊樣式
+            el.classList.remove('drag-over-top', 'drag-over-bottom', 'drag-over-inside');
+
+            // 判斷位置：上、下、或中間(僅資料夾)
+            if (targetItem.type === 'folder' && relY > height * 0.25 && relY < height * 0.75) {
+                // 拖進資料夾 (防呆：不能拖進自己的子資料夾)
+                if(!isDescendant(draggedItem, targetItem)) {
+                    el.classList.add('drag-over-inside');
+                }
+            } else if (relY < height * 0.5) {
+                el.classList.add('drag-over-top');
             } else {
-                x = e.pageX;
-                y = e.pageY;
+                el.classList.add('drag-over-bottom');
             }
+        }
+
+        function handleDragLeave(e, el) {
+            el.classList.remove('drag-over-top', 'drag-over-bottom', 'drag-over-inside');
+        }
+
+        function handleDrop(e, targetItem, targetParentArray, targetIndex) {
+            e.preventDefault();
+            e.stopPropagation();
+            const el = e.currentTarget;
+            el.classList.remove('dragging');
+            
+            // 判斷動作
+            if (el.classList.contains('drag-over-inside')) {
+                // 移入資料夾
+                if(draggedItem === targetItem) return;
+                draggedParentArray.splice(draggedIndex, 1); // 移除舊的
+                targetItem.children.push(draggedItem); // 加入新的
+                targetItem.collapsed = false; // 自動展開
+            } else if (el.classList.contains('drag-over-top')) {
+                // 移到上方
+                executeMove(targetParentArray, targetIndex);
+            } else if (el.classList.contains('drag-over-bottom')) {
+                // 移到下方
+                executeMove(targetParentArray, targetIndex + 1);
+            }
+            
+            el.classList.remove('drag-over-top', 'drag-over-bottom', 'drag-over-inside');
+            markDirty();
+            renderTree();
+        }
+
+        function executeMove(targetParentArray, insertIndex) {
+            // 如果是在同一個陣列內移動
+            if (draggedParentArray === targetParentArray) {
+                if (draggedIndex < insertIndex) insertIndex--; // 修正索引
+                draggedParentArray.splice(draggedIndex, 1);
+                draggedParentArray.splice(insertIndex, 0, draggedItem);
+            } else {
+                // 跨資料夾移動
+                draggedParentArray.splice(draggedIndex, 1);
+                targetParentArray.splice(insertIndex, 0, draggedItem);
+            }
+        }
+
+        // 檢查是否為子孫節點 (防止無限迴圈)
+        function isDescendant(parent, child) {
+            if (parent === child) return true;
+            if (parent.children) {
+                for (let sub of parent.children) {
+                    if (isDescendant(sub, child)) return true;
+                }
+            }
+            return false;
+        }
+
+        // --- 選單與操作 ---
+        function openMenu(e, item, parentArray, index) {
+            e.preventDefault(); e.stopPropagation();
+            const menu = document.getElementById('ctx-menu');
+            activeItem = item; activeParentArray = parentArray || fileStructure; activeIndex = index;
+            
+            let x = (e.type === 'click') ? e.target.getBoundingClientRect().left - 100 : e.pageX;
+            let y = (e.type === 'click') ? e.target.getBoundingClientRect().bottom + 5 : e.pageY;
             if(x < 10) x = 10;
 
-            menu.style.display = 'block'; 
-            menu.style.left = x + 'px'; 
-            menu.style.top = y + 'px';
-            
+            menu.style.display = 'block'; menu.style.left = x + 'px'; menu.style.top = y + 'px';
             document.addEventListener('click', () => menu.style.display = 'none', { once: true });
         }
 
@@ -389,123 +468,72 @@
             document.getElementById('ctx-menu').style.display = 'none';
             
             if (action === 'newFolder') {
-                showModal('input', '新增資料夾', '請輸入資料夾名稱', [{id:'folderName', placeholder:'例如：第三章'}], 'icon-blue', '📁', (vals) => {
+                showModal('input', '新增資料夾', '請輸入名稱', [{id:'folderName', placeholder:'名稱'}], 'icon-blue', '📁', (vals) => {
                     if (!vals.folderName) return;
                     const newItem = { type: 'folder', name: vals.folderName, children: [], collapsed: false };
                     (activeItem && activeItem.type === 'folder' ? activeItem.children : activeParentArray).push(newItem);
-                    // 如果是在資料夾內新增，自動展開該資料夾
                     if(activeItem && activeItem.type === 'folder') activeItem.collapsed = false;
                     finishAction();
                 });
             } else if (action === 'newFile') {
-                showModal('input', '新增檔案/連結', '請輸入名稱與路徑', [
-                    {id:'fileName', placeholder:'顯示名稱 (例：講義.pdf)'},
-                    {id:'filePath', placeholder:'路徑或網址 (例：file/doc.pdf)'}
-                ], 'icon-blue', '📄', (vals) => {
+                showModal('input', '新增檔案', '請輸入', [{id:'fileName', placeholder:'名稱'}, {id:'filePath', placeholder:'路徑'}], 'icon-blue', '📄', (vals) => {
                     if (!vals.fileName) return;
-                    let icon = "📄";
-                    if(vals.filePath.includes('youtu')) icon = "🎥";
-                    else if(vals.filePath.match(/\.(jpg|png)$/i)) icon = "🖼️";
-                    
+                    let icon = vals.filePath.includes('youtu') ? "🎥" : (vals.filePath.match(/\.(jpg|png)$/i) ? "🖼️" : "📄");
                     const newItem = { type: 'file', name: vals.fileName, path: vals.filePath, note: '', icon: icon };
                     (activeItem && activeItem.type === 'folder' ? activeItem.children : activeParentArray).push(newItem);
                     if(activeItem && activeItem.type === 'folder') activeItem.collapsed = false;
                     finishAction();
                 });
             } else if (action === 'rename' && activeItem) {
-                showModal('input', '重新命名', '請輸入新的名稱', [{id:'newName', val:activeItem.name}], 'icon-blue', '✏️', (vals) => {
-                    if (vals.newName) { activeItem.name = vals.newName; finishAction(); }
-                });
+                showModal('input', '重新命名', '', [{id:'newName', val:activeItem.name}], 'icon-blue', '✏️', (vals) => { if(vals.newName) { activeItem.name = vals.newName; finishAction(); } });
             } else if (action === 'delete' && activeItem) {
-                showModal('confirm', '確認刪除', `確定要刪除「${activeItem.name}」嗎？`, [], 'icon-red', '!', () => {
-                    activeParentArray.splice(activeIndex, 1);
-                    finishAction();
-                });
+                showModal('confirm', '確認刪除', `刪除「${activeItem.name}」？`, [], 'icon-red', '!', () => { activeParentArray.splice(activeIndex, 1); finishAction(); });
+            } else if (action === 'moveUp' && activeIndex > 0) {
+                // 🟢 上移功能
+                const temp = activeParentArray[activeIndex];
+                activeParentArray[activeIndex] = activeParentArray[activeIndex - 1];
+                activeParentArray[activeIndex - 1] = temp;
+                finishAction();
+            } else if (action === 'moveDown' && activeIndex < activeParentArray.length - 1) {
+                // 🟢 下移功能
+                const temp = activeParentArray[activeIndex];
+                activeParentArray[activeIndex] = activeParentArray[activeIndex + 1];
+                activeParentArray[activeIndex + 1] = temp;
+                finishAction();
             }
         }
 
-        function finishAction() {
-            markDirty();
-            renderTree();
-            closeModal();
-        }
+        function finishAction() { markDirty(); renderTree(); closeModal(); }
 
-        // Modal Helper
+        // Modal
         function showModal(type, title, desc, inputs, iconClass, iconText, callback) {
             const overlay = document.getElementById('custom-modal-overlay');
             const content = document.getElementById('modal-content');
             const confirmBtn = document.getElementById('modal-confirm-btn');
-            
             document.getElementById('modal-icon').className = 'modal-icon-wrapper ' + iconClass;
             document.getElementById('modal-icon').innerText = iconText;
             document.getElementById('modal-title').innerText = title;
             document.getElementById('modal-desc').innerText = desc;
-            
             content.innerHTML = '';
             inputs.forEach(inp => {
-                const el = document.createElement('input');
-                el.type = 'text'; el.className = 'modal-input';
-                el.id = inp.id; el.placeholder = inp.placeholder || '';
-                if(inp.val) el.value = inp.val;
-                content.appendChild(el);
+                const el = document.createElement('input'); el.type = 'text'; el.className = 'modal-input'; el.id = inp.id; el.placeholder = inp.placeholder || ''; if(inp.val) el.value = inp.val; content.appendChild(el);
             });
-
             confirmBtn.className = 'modal-btn btn-confirm ' + (iconClass === 'icon-red' ? 'danger' : '');
-            confirmBtn.onclick = () => {
-                const values = {};
-                inputs.forEach(inp => values[inp.id] = document.getElementById(inp.id).value.trim());
-                callback(values);
-            };
+            confirmBtn.onclick = () => { const v={}; inputs.forEach(i=>v[i.id]=document.getElementById(i.id).value.trim()); callback(v); };
+            overlay.style.display = 'flex'; setTimeout(() => overlay.classList.add('show'), 10);
+        }
+        function closeModal() { const o = document.getElementById('custom-modal-overlay'); o.classList.remove('show'); setTimeout(() => o.style.display = 'none', 300); }
 
-            overlay.style.display = 'flex';
-            setTimeout(() => overlay.classList.add('show'), 10);
-        }
+        function markDirty() { isDirty = true; document.getElementById('treeRoot').classList.add('unsaved'); document.getElementById('saveBtn').classList.remove('disabled'); document.getElementById('statusText').innerText = "⚠️ 變更未儲存"; }
+        function markSaved() { isDirty = false; document.getElementById('treeRoot').classList.remove('unsaved'); document.getElementById('saveBtn').classList.add('disabled'); document.getElementById('statusText').innerText = "資料已同步"; }
 
-        function closeModal() {
-            const overlay = document.getElementById('custom-modal-overlay');
-            overlay.classList.remove('show');
-            setTimeout(() => overlay.style.display = 'none', 300);
-        }
-
-        function markDirty() {
-            isDirty = true;
-            document.getElementById('treeRoot').classList.add('unsaved');
-            const btn = document.getElementById('saveBtn');
-            btn.classList.remove('disabled');
-            btn.innerText = "💾 儲存變更到雲端 (未儲存)";
-            document.getElementById('statusText').innerText = "⚠️ 變更未儲存";
-        }
-        function markSaved() {
-            isDirty = false;
-            document.getElementById('treeRoot').classList.remove('unsaved');
-            const btn = document.getElementById('saveBtn');
-            btn.classList.add('disabled');
-            btn.innerText = "💾 儲存變更到雲端";
-            document.getElementById('statusText').innerText = "資料已同步";
-        }
-
-        // 会員/公告
-        function loadUsers() {
-            const list = document.getElementById('userList');
-            list.innerHTML = '<li style="text-align:center;">讀取中...</li>';
-            db.collection("users").orderBy("createdAt", "desc").get().then(snapshot => {
-                let html = '';
-                snapshot.forEach(doc => {
-                    const u = doc.data();
-                    const isPending = u.status === 'pending';
-                    html += `<li class="user-item">
-                        <div class="user-info"><div><span class="u-name">${u.name}</span> <span class="u-status ${isPending?'status-pending':'status-approved'}">${isPending?'待審':'已通'}</span></div><small style="color:#888;">${u.email}</small></div>
-                        ${isPending ? `<button class="btn btn-approve" onclick="approveUser('${doc.id}')">核准</button>` : ''}
-                    </li>`;
-                });
-                list.innerHTML = html || '<li style="text-align:center;">無會員</li>';
-            });
-        }
-        function approveUser(uid) { if(confirm("核准？")) db.collection("users").doc(uid).update({status:"approved"}).then(loadUsers); }
-        function loadCurrentNotification() { db.collection("system").doc("announcement").get().then(doc => { const t = (doc.exists&&doc.data().active)?doc.data().text:""; document.getElementById("notifyText").value=t; document.getElementById("previewText").innerText=t||"(無)"; }); document.getElementById("notifyText").addEventListener("input", function(){ document.getElementById("previewText").innerText=this.value||"(無)"; }); }
+        // Other Logic
+        function loadUsers() { db.collection("users").orderBy("createdAt", "desc").get().then(s => { let h=''; s.forEach(d=>{ const u=d.data(); const p=u.status==='pending'; h+=`<li class="user-item"><div class="user-info"><div><span class="u-name">${u.name}</span> <span class="u-status ${p?'status-pending':'status-approved'}">${p?'待審':'已通'}</span></div><small style="color:#888;">${u.email}</small></div>${p?`<button class="btn btn-approve" onclick="approveUser('${d.id}')">核准</button>`:''}</li>`; }); document.getElementById('userList').innerHTML=h||'<li style="text-align:center;">無</li>'; }); }
+        function approveUser(id) { if(confirm("核准？")) db.collection("users").doc(id).update({status:"approved"}).then(loadUsers); }
+        function loadCurrentNotification() { db.collection("system").doc("announcement").get().then(d => { const t = (d.exists&&d.data().active)?d.data().text:""; document.getElementById("notifyText").value=t; document.getElementById("previewText").innerText=t||"(無)"; }); document.getElementById("notifyText").addEventListener("input", function(){ document.getElementById("previewText").innerText=this.value||"(無)"; }); }
         function postNotification() { const t=document.getElementById("notifyText").value.trim(); if(!t)return alert("請輸入"); db.collection("system").doc("announcement").set({text:t, active:true, timestamp:new Date()}).then(()=>alert("已發布")); }
         function clearNotification() { if(confirm("清除？")) db.collection("system").doc("announcement").set({text:"", active:false}).then(()=>{ document.getElementById("notifyText").value=""; document.getElementById("previewText").innerText="(無)"; alert("已清除"); }); }
-        function switchTab(type) { document.querySelectorAll('.section').forEach(el=>el.classList.remove('active')); document.querySelectorAll('.tab').forEach(el=>el.classList.remove('active')); document.getElementById('sec-'+type).classList.add('active'); document.querySelector(`.tab[data-type="${type}"]`).classList.add('active'); }
+        function switchTab(t) { document.querySelectorAll('.section').forEach(e=>e.classList.remove('active')); document.querySelectorAll('.tab').forEach(e=>e.classList.remove('active')); document.getElementById('sec-'+t).classList.add('active'); document.querySelector(`.tab[data-type="${t}"]`).classList.add('active'); }
     </script>
 </body>
 </html>
