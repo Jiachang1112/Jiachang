@@ -75,12 +75,13 @@
         label { display: block; margin-bottom: 8px; font-weight: bold; color: #2c3e50; }
         textarea { width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 16px; box-sizing: border-box; height: 120px; resize: none; }
         
+        /* 會員列表 */
         .user-list { list-style: none; padding: 0; }
         .user-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 1px solid #eee; background: white; }
         .u-status { font-size: 12px; padding: 3px 10px; border-radius: 12px; margin-left: 10px; font-weight: bold; }
         .status-pending { background: #ffeaa7; color: #d35400; }
-        /* 🟢 修改：顏色重一點的已通過樣式 */
         .status-approved { background: #27ae60; color: white; }
+        .status-suspended { background: #e74c3c; color: white; } /* 停用狀態樣式 */
 
         .btn { width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; margin-top: 5px; font-size: 15px; }
         .btn-save { background: #27ae60; color: white; margin-top: auto; }
@@ -88,8 +89,11 @@
         .btn-save.disabled { background: #ccc; cursor: default; }
         .btn-post { background-color: #e67e22; color: white; }
         .btn-clear { background-color: #95a5a6; color: white; margin-top: 10px; }
-        .btn-approve { background: #27ae60; color: white; padding: 6px 12px; width: auto; font-size: 13px; }
-        .btn-migrate { background: #e74c3c; color: white; font-size: 12px; width: auto; padding: 5px 10px; }
+        
+        /* 按鈕樣式 */
+        .btn-action { width: auto; padding: 6px 12px; font-size: 13px; border-radius: 6px; color: white; border: none; cursor: pointer; }
+        .btn-approve { background: #27ae60; } /* 核准 */
+        .btn-suspend { background: #e74c3c; } /* 停用 */
 
         /* 右鍵選單 */
         #ctx-menu { position: fixed; background: white; border: 1px solid #ddd; box-shadow: 0 5px 15px rgba(0,0,0,0.2); border-radius: 8px; padding: 5px 0; z-index: 1000; display: none; width: 180px; }
@@ -177,8 +181,6 @@
                         4. 點擊 <b style="color:#2980b9">▶ 箭頭</b> 可收合/展開。<br>
                         5. <b>操作後請務必按儲存。</b>
                     </p>
-                    <button class="btn btn-migrate" onclick="migrateFromConfig()">⚠️ 從 Config.js 重置匯入</button>
-                    
                     <div style="margin-top:auto;">
                         <div id="statusText" style="text-align:right; font-size:12px; color:#888; margin-bottom:5px;">資料已同步</div>
                         <button class="btn btn-save disabled" id="saveBtn" onclick="saveToCloud()">💾 儲存變更到雲端</button>
@@ -222,7 +224,6 @@
         <div class="ctx-item" onclick="ctxAction('delete')" style="color:#e74c3c;"><span>🗑️</span> 刪除</div>
     </div>
 
-    <script src="config.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
@@ -274,7 +275,7 @@
                     fileStructure = doc.data().items;
                     renderTree(); markSaved();
                 } else {
-                    document.getElementById('treeRoot').innerHTML = '<div style="text-align:center; padding:50px;">雲端無資料，請按匯入</div>';
+                    document.getElementById('treeRoot').innerHTML = '<div style="text-align:center; padding:50px;">雲端無資料，請右鍵新增</div>';
                 }
             }).catch(e => console.error(e));
         }
@@ -290,12 +291,6 @@
                 showModal('info', '錯誤', '儲存失敗：' + e.message, [], 'icon-red', '❌', () => { closeModal(); });
                 btn.innerText = "💾 儲存變更到雲端";
             });
-        }
-
-        function migrateFromConfig() {
-            if(!confirm("確定要從 config.js 覆蓋雲端資料嗎？")) return;
-            fileStructure = JSON.parse(JSON.stringify(CONFIG.items));
-            renderTree(); markDirty();
         }
 
         function renderTree() {
@@ -393,15 +388,35 @@
                 let h=''; 
                 s.forEach(d=>{ 
                     const u=d.data(); 
-                    const p=u.status==='pending'; 
-                    // 🟢 修改：將「已核准」改為「已通過」
-                    h+=`<li class="user-item"><div class="user-info"><div><span class="u-name">${u.name}</span> <span class="u-status ${p?'status-pending':'status-approved'}">${p?'待審':'已通過'}</span></div><small style="color:#888;">${u.email}</small></div>${p?`<button class="btn btn-approve" onclick="approveUser('${d.id}')">核准</button>`:''}</li>`; 
+                    const isApproved = u.status === 'approved';
+                    const isPending = u.status === 'pending';
+                    const isSuspended = u.status === 'suspended';
+                    
+                    let statusHtml = '';
+                    if (isPending) statusHtml = '<span class="u-status status-pending">待審核</span>';
+                    else if (isApproved) statusHtml = '<span class="u-status status-approved">已通過</span>';
+                    else if (isSuspended) statusHtml = '<span class="u-status status-suspended">已停用</span>';
+
+                    let actionBtn = '';
+                    if (isPending) actionBtn = `<button class="btn-action btn-approve" onclick="approveUser('${d.id}')">✅ 核准</button>`;
+                    else if (isApproved) actionBtn = `<button class="btn-action btn-suspend" onclick="suspendUser('${d.id}')">⛔ 停用</button>`;
+                    else if (isSuspended) actionBtn = `<button class="btn-action btn-approve" onclick="approveUser('${d.id}')">🔄 復原</button>`;
+
+                    h+=`<li class="user-item">
+                        <div class="user-info">
+                            <div><span class="u-name">${u.name}</span> ${statusHtml}</div>
+                            <small style="color:#888;">${u.email}</small>
+                        </div>
+                        ${actionBtn}
+                    </li>`; 
                 }); 
                 list.innerHTML=h||'<li style="text-align:center; padding:20px;">無會員資料</li>'; 
             }).catch(err => {
                  list.innerHTML = `<li style="text-align:center; color:red;">讀取失敗：${err.message}</li>`;
             });
         }
+
+        // 🟢 核准 / 復原
         function approveUser(uid) { 
             showModal('confirm', '確認核准', '確定要核准這位會員嗎？', [], 'icon-blue', '✅', () => { 
                 db.collection("users").doc(uid).update({status:"approved"}).then(() => {
@@ -410,6 +425,17 @@
                 }); 
             }); 
         }
+
+        // 🟢 停用 (新增的功能)
+        function suspendUser(uid) {
+            showModal('confirm', '確認停用', '確定要停用此帳號嗎？使用者將無法登入。', [], 'icon-red', '!', () => {
+                db.collection("users").doc(uid).update({status:"suspended"}).then(() => {
+                    loadUsers();
+                    closeModal();
+                });
+            });
+        }
+
         function loadCurrentNotification() { db.collection("system").doc("announcement").get().then(d => { const t = (d.exists&&d.data().active)?d.data().text:""; document.getElementById("notifyText").value=t; document.getElementById("previewText").innerText=t||"(無)"; }); document.getElementById("notifyText").addEventListener("input", function(){ document.getElementById("previewText").innerText=this.value||"(無)"; }); }
         
         function postNotification() { 
