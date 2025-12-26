@@ -6,7 +6,7 @@
     <title>教學資源庫</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
-        /* (維持原本漂亮的 CSS 樣式，這裡省略重複部分以節省版面，但功能一樣強大) */
+        /* --- 🎨 CSS 變數系統 --- */
         :root { --bg-color: #f0f2f5; --card-bg: #ffffff; --text-main: #2c3e50; --text-sub: #666666; --border: #eeeeee; --accent: #3498db; --accent-hover: #2980b9; --shadow: 0 4px 20px rgba(0,0,0,0.05); --folder-bg: #f8f9fa; --announce-bg: #fff3cd; --announce-text: #856404; }
         [data-theme="dark"] { --bg-color: #121212; --card-bg: #1e1e1e; --text-main: #e0e0e0; --text-sub: #a0a0a0; --border: #333333; --accent: #4fa3e0; --accent-hover: #6ab0e6; --shadow: 0 4px 20px rgba(0,0,0,0.3); --folder-bg: #2d2d2d; --announce-bg: #3e3825; --announce-text: #ffca2c; }
         body { font-family: 'Noto Sans TC', sans-serif; background-color: var(--bg-color); margin: 0; padding: 0; color: var(--text-main); height: 100vh; transition: background 0.3s, color 0.3s; }
@@ -108,7 +108,7 @@
     <div id="content" class="hidden">
         <div class="container">
             <div class="header-bar">
-                <div class="brand"><span>📚</span> <div id="page-title">教學資源庫</div></div>
+                <div class="brand"><span>📂</span> <div id="page-title">教學資源庫</div></div>
                 <div class="header-tools">
                     <div class="search-box">
                         <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
@@ -287,7 +287,7 @@
             }
         }
 
-        // --- 🟢 核心：從雲端讀取檔案結構 ---
+        // --- 🟢 核心：從雲端讀取檔案結構 (關鍵修改) ---
         let pathStack = [];
         let allFilesFlat = [];
         let cloudItems = []; // 儲存從雲端抓下來的資料
@@ -319,12 +319,10 @@
         function refreshCurrentView() {
             // 根據 pathStack 重新定位到當前資料夾
             // 這裡簡化處理：如果結構變了，直接回到首頁比較安全
-            // 若要精確定位比較複雜，先回首頁最穩
             if (pathStack.length === 0) {
                 renderList(cloudItems);
             } else {
-                // 嘗試找回原本的路徑 (進階功能，暫略，先跳回首頁)
-                pathStack = [];
+                pathStack = []; // 重置路徑，回到首頁
                 renderList(cloudItems);
             }
             updateBreadcrumb();
@@ -408,7 +406,17 @@
         function updateBreadcrumb() {
             const backBtn = document.getElementById("backBtn");
             if (pathStack.length > 0) backBtn.classList.remove("hidden"); else backBtn.classList.add("hidden");
-            document.getElementById("breadcrumb-container").innerHTML = pathStack.length ? `<span>... / ${pathStack[pathStack.length-1].name}</span>` : '首頁';
+            // 🟢 修改麵包屑為完整路徑
+            let html = `<span class="breadcrumb-item" onclick="jumpTo(-1)">首頁</span>`;
+            pathStack.forEach((folder, index) => {
+                html += `<span class="breadcrumb-separator">/</span>`;
+                if (index === pathStack.length - 1) {
+                    html += `<span class="breadcrumb-current">${folder.name}</span>`;
+                } else {
+                    html += `<span class="breadcrumb-item" onclick="jumpTo(${index})">${folder.name}</span>`;
+                }
+            });
+            document.getElementById("breadcrumb-container").innerHTML = html;
         }
     </script>
 </body>
