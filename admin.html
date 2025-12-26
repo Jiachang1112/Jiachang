@@ -77,9 +77,10 @@
         
         .user-list { list-style: none; padding: 0; }
         .user-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 1px solid #eee; background: white; }
-        .u-status { font-size: 12px; padding: 2px 8px; border-radius: 10px; margin-left: 10px; }
+        .u-status { font-size: 12px; padding: 3px 10px; border-radius: 12px; margin-left: 10px; font-weight: bold; }
         .status-pending { background: #ffeaa7; color: #d35400; }
-        .status-approved { background: #55efc4; color: #00b894; }
+        /* 🟢 修改：顏色重一點的已通過樣式 */
+        .status-approved { background: #27ae60; color: white; }
 
         .btn { width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; margin-top: 5px; font-size: 15px; }
         .btn-save { background: #27ae60; color: white; margin-top: auto; }
@@ -189,7 +190,7 @@
         <div id="sec-user" class="section">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
                 <h3>註冊會員列表</h3>
-                <button class="btn" style="width:auto; background:#eee; color:#333;" onclick="loadUsers()">🔄 重新整理</button>
+                <button onclick="loadUsers()" style="background:#eee; border:none; padding:8px 15px; border-radius:6px; cursor:pointer; color:#555; font-weight:bold; font-size:14px;">🔄 重新整理</button>
             </div>
             <ul class="user-list" id="userList"></ul>
         </div>
@@ -283,11 +284,9 @@
             const btn = document.getElementById('saveBtn');
             btn.innerText = "儲存中...";
             db.collection('system').doc('files').set({ items: fileStructure }).then(() => {
-                // 🟢 替換為 Modal 提示
                 showModal('info', '系統提示', '儲存成功！', [], 'icon-blue', '✅', () => { closeModal(); });
                 markSaved();
             }).catch(e => {
-                // 🟢 替換為 Modal 提示
                 showModal('info', '錯誤', '儲存失敗：' + e.message, [], 'icon-red', '❌', () => { closeModal(); });
                 btn.innerText = "💾 儲存變更到雲端";
             });
@@ -387,11 +386,25 @@
         function markSaved() { isDirty = false; document.getElementById('treeRoot').classList.remove('unsaved'); document.getElementById('saveBtn').classList.add('disabled'); document.getElementById('saveBtn').innerText = "💾 儲存變更到雲端"; document.getElementById('statusText').innerText = "資料已同步"; }
 
         // Other Logic
-        function loadUsers() { db.collection("users").orderBy("createdAt", "desc").get().then(s => { let h=''; s.forEach(d=>{ const u=d.data(); const p=u.status==='pending'; h+=`<li class="user-item"><div class="user-info"><div><span class="u-name">${u.name}</span> <span class="u-status ${p?'status-pending':'status-approved'}">${p?'待審':'已通'}</span></div><small style="color:#888;">${u.email}</small></div>${p?`<button class="btn btn-approve" onclick="approveUser('${d.id}')">核准</button>`:''}</li>`; }); document.getElementById('userList').innerHTML=h||'<li style="text-align:center;">無</li>'; }); }
-        function approveUser(id) { 
-            // 🟢 改用 Modal 提示
+        function loadUsers() { 
+            const list = document.getElementById('userList');
+            list.innerHTML = '<li style="text-align:center; padding:20px; color:#999;">讀取中...</li>';
+            db.collection("users").orderBy("createdAt", "desc").get().then(s => { 
+                let h=''; 
+                s.forEach(d=>{ 
+                    const u=d.data(); 
+                    const p=u.status==='pending'; 
+                    // 🟢 修改：將「已核准」改為「已通過」
+                    h+=`<li class="user-item"><div class="user-info"><div><span class="u-name">${u.name}</span> <span class="u-status ${p?'status-pending':'status-approved'}">${p?'待審':'已通過'}</span></div><small style="color:#888;">${u.email}</small></div>${p?`<button class="btn btn-approve" onclick="approveUser('${d.id}')">核准</button>`:''}</li>`; 
+                }); 
+                list.innerHTML=h||'<li style="text-align:center; padding:20px;">無會員資料</li>'; 
+            }).catch(err => {
+                 list.innerHTML = `<li style="text-align:center; color:red;">讀取失敗：${err.message}</li>`;
+            });
+        }
+        function approveUser(uid) { 
             showModal('confirm', '確認核准', '確定要核准這位會員嗎？', [], 'icon-blue', '✅', () => { 
-                db.collection("users").doc(id).update({status:"approved"}).then(() => {
+                db.collection("users").doc(uid).update({status:"approved"}).then(() => {
                     loadUsers();
                     closeModal();
                 }); 
@@ -399,7 +412,6 @@
         }
         function loadCurrentNotification() { db.collection("system").doc("announcement").get().then(d => { const t = (d.exists&&d.data().active)?d.data().text:""; document.getElementById("notifyText").value=t; document.getElementById("previewText").innerText=t||"(無)"; }); document.getElementById("notifyText").addEventListener("input", function(){ document.getElementById("previewText").innerText=this.value||"(無)"; }); }
         
-        // 🟢 改用 Modal 提示
         function postNotification() { 
             const t=document.getElementById("notifyText").value.trim(); 
             if(!t) return showModal('info', '提示', '請輸入公告內容', [], 'icon-red', '!', () => closeModal());
@@ -409,7 +421,6 @@
             }); 
         }
         
-        // 🟢 改用 Modal 提示
         function clearNotification() { 
             showModal('confirm', '確認清除', '確定要清除並隱藏公告嗎？', [], 'icon-red', '!', () => {
                 db.collection("system").doc("announcement").set({text:"", active:false}).then(()=>{ 
