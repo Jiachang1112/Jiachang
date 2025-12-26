@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>網站管理後台 - 全平台通用版</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        /* --- 全域設定 --- */
+        body { font-family: 'Noto Sans TC', sans-serif; background: #f5f7fa; padding: 20px; color: #333; display: flex; justify-content: center; min-height: 100vh; box-sizing: border-box; margin: 0; }
+        .container { width: 100%; max-width: 900px; background: #fff; padding: 30px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); display: flex; flex-direction: column; }
+        
+        h1 { margin-top: 0; color: #2c3e50; font-size: 22px; border-bottom: 2px solid #eee; padding-bottom: 15px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        
+        /* Tabs */
+        .tabs { display: flex; margin-bottom: 20px; background: #f0f2f5; padding: 5px; border-radius: 8px; gap: 5px; overflow-x: auto; }
+        .tab { flex: 1; text-align: center; padding: 10px; cursor: pointer; border-radius: 6px; font-weight: bold; color: #666; transition: 0.2s; font-size: 14px; white-space: nowrap; }
+        .tab.active { background: #fff; color: #333; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .tab.active[data-type="files"] { color: #2980b9; border-bottom: 2px solid #2980b9; }
+        .tab.active[data-type="user"] { color: #e74c3c; border-bottom: 2px solid #e74c3c; }
+        .tab.active[data-type="notify"] { color: #d35400; border-bottom: 2px solid #d35400; }
+
+        .section { display: none; animation: fadeIn 0.3s; flex-grow: 1; }
+        .section.active { display: flex; flex-direction: column; }
+        
+        /* 🟢 檔案總管佈局 */
+        .manager-wrapper { display: flex; gap: 20px; min-height: 500px; border: 1px solid #eee; border-radius: 12px; padding: 10px; background: #fafafa; }
+        .tree-panel { flex: 2; background: white; border-radius: 8px; border: 1px solid #eee; padding: 15px; overflow-y: auto; position: relative; }
+        .tree-panel.unsaved { border-color: #f39c12; background: #fffdf5; }
+        .action-panel { flex: 1; background: white; border-radius: 8px; border: 1px solid #eee; padding: 15px; display: flex; flex-direction: column; }
+        
+        @media (max-width: 768px) {
+            .manager-wrapper { flex-direction: column; height: auto; }
+            .tree-panel { min-height: 400px; }
+            .action-panel { height: auto; }
+            body { padding: 10px; }
+            .container { padding: 15px; }
+        }
+
+        /* 🟢 樹狀節點樣式 (包含選單按鈕) */
+        .node { 
+            padding: 6px 10px; margin: 4px 0; border-radius: 6px; 
+            display: flex; align-items: center; justify-content: space-between; /* 關鍵：讓文字靠左，按鈕靠右 */
+            transition: 0.2s; user-select: none; font-size: 15px; background: #fff; border: 1px solid transparent;
+        }
+        .node:hover { background: #f0f7ff; border-color: #d6eaf8; }
+        
+        /* 節點內容區 */
+        .node-content { display: flex; align-items: center; flex-grow: 1; overflow: hidden; cursor: pointer; }
+        .node.folder .node-content { font-weight: bold; color: #2c3e50; }
+        .node.file .node-content { color: #666; }
+        .node-icon { margin-right: 8px; width: 24px; text-align: center; flex-shrink: 0; }
+        .node-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        
+        .indent { margin-left: 20px; border-left: 1px solid #eee; }
+
+        /* 🟢 選單按鈕 (三個點) */
+        .node-menu-btn {
+            padding: 4px 8px; color: #aaa; cursor: pointer; font-weight: bold; font-size: 18px;
+            border-radius: 4px; transition: 0.2s; flex-shrink: 0; margin-left: 10px;
+        }
+        .node-menu-btn:hover { background: #e0e0e0; color: #333; }
+        
+        /* 新增根目錄按鈕 */
+        .add-root-btn {
+            display: flex; align-items: center; justify-content: center;
+            margin-top: 15px; padding: 12px;
+            border: 2px dashed #ddd; border-radius: 8px;
+            color: #888; font-weight: bold; cursor: pointer; transition: 0.2s;
+        }
+        .add-root-btn:hover { border-color: #3498db; color: #3498db; background: #f0f8ff; }
+
+        /* 通用元件 */
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; font-weight: bold; color: #2c3e50; }
+        textarea { width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 16px; box-sizing: border-box; height: 120px; resize: none; }
+        
+        .user-list { list-style: none; padding: 0; }
+        .user-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 1px solid #eee; background: white; }
+        .u-status { font-size: 12px; padding: 2px 8px; border-radius: 10px; margin-left: 10px; }
+        .status-pending { background: #ffeaa7; color: #d35400; }
+        .status-approved { background: #55efc4; color: #00b894; }
+
+        .btn { width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; margin-top: 5px; font-size: 15px; }
+        .btn-save { background: #27ae60; color: white; margin-top: auto; }
+        .btn-save:hover { background: #219150; }
+        .btn-save.disabled { background: #ccc; cursor: default; }
+        .btn-post { background-color: #e67e22; color: white; }
+        .btn-clear { background-color: #95a5a6; color: white; margin-top: 10px; }
+        .btn-approve { background: #27ae60; color: white; padding: 6px 12px; width: auto; font-size: 13px; }
+        .btn-migrate { background: #e74c3c; color: white; font-size: 12px; width: auto; padding: 5px 10px; }
+
+        /* 🟢 右鍵選單 (Context Menu) */
+        #ctx-menu { position: fixed; background: white; border: 1px solid #ddd; box-shadow: 0 5px 15px rgba(0,0,0,0.2); border-radius: 8px; padding: 5px 0; z-index: 1000; display: none; width: 160px; }
+        .ctx-item { padding: 12px 15px; cursor: pointer; font-size: 15px; color: #333; display: flex; align-items: center; }
+        .ctx-item span { margin-right: 10px; width: 20px; text-align: center; }
+        .ctx-item:hover { background: #f0f7ff; color: #3498db; }
+        .ctx-divider { height: 1px; background: #eee; margin: 5px 0; }
+
+        /* 登入遮罩 */
+        #login-panel { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #f5f7fa; z-index: 999; display: flex; justify-content: center; align-items: center; flex-direction: column; padding: 20px; }
+        .login-box { background: white; padding: 40px; border-radius: 16px; width: 100%; max-width: 350px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        .login-input { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
+
+        /* 🟢 自訂 Modal */
+        #custom-modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(4px);
+            z-index: 2000; display: none;
+            justify-content: center; align-items: center; padding: 20px;
+            opacity: 0; transition: opacity 0.3s;
+        }
+        #custom-modal-overlay.show { opacity: 1; }
+        .modal-box {
+            background: white; width: 100%; max-width: 400px;
+            padding: 30px; border-radius: 16px;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.2);
+            text-align: center; transform: scale(0.9); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        #custom-modal-overlay.show .modal-box { transform: scale(1); }
+        .modal-icon-wrapper { width: 60px; height: 60px; margin: 0 auto 15px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 30px; }
+        .icon-blue { background: #e3f2fd; color: #2196f3; }
+        .icon-red { background: #ffebee; color: #f44336; }
+        .modal-title { font-size: 20px; font-weight: bold; color: #333; margin-bottom: 5px; }
+        .modal-desc { font-size: 14px; color: #666; margin-bottom: 20px; }
+        .modal-input { width: 100%; padding: 12px; margin-bottom: 10px; border: 2px solid #eee; border-radius: 8px; font-size: 16px; box-sizing: border-box; transition: 0.2s; }
+        .modal-input:focus { border-color: #3498db; outline: none; }
+        .modal-btn-group { display: flex; gap: 10px; margin-top: 10px; }
+        .modal-btn { flex: 1; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 15px; }
+        .btn-cancel { background: #f1f2f6; color: #7f8c8d; }
+        .btn-confirm { background: #3498db; color: white; }
+        .btn-confirm.danger { background: #e74c3c; }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    </style>
+</head>
+<body>
+
+    <div id="custom-modal-overlay">
+        <div class="modal-box">
+            <div id="modal-icon" class="modal-icon-wrapper icon-blue">✏️</div>
+            <div id="modal-title" class="modal-title">標題</div>
+            <div id="modal-desc" class="modal-desc">說明文字</div>
+            <div id="modal-content"></div>
+            <div class="modal-btn-group">
+                <button class="modal-btn btn-cancel" onclick="closeModal()">取消</button>
+                <button id="modal-confirm-btn" class="modal-btn btn-confirm">確定</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="login-panel">
+        <div class="login-box">
+            <h3>🔒 管理員登入</h3>
+            <input type="email" id="admEmail" class="login-input" placeholder="Email">
+            <input type="password" id="admPass" class="login-input" placeholder="密碼">
+            <button class="btn" style="background:#3498db; color:white;" onclick="doLogin()">登入</button>
+            <p id="loginMsg" style="color:red; font-size:12px; margin-top:10px;"></p>
+        </div>
+    </div>
+
+    <div class="container" id="main-panel" style="display:none;">
+        <h1>
+            <span>🛠️ 網站管理後台</span>
+            <div style="display:flex; align-items:center;">
+                <span id="adminName" style="font-size:14px; color:#27ae60; margin-right:10px;"></span>
+                <button class="btn" style="background:#34495e; color:white; width:auto; padding:6px 15px; font-size:12px;" onclick="location.reload()">登出</button>
+            </div>
+        </h1>
+
+        <div class="tabs">
+            <div class="tab active" data-type="files" onclick="switchTab('files')">📁 檔案管理</div>
+            <div class="tab" data-type="user" onclick="switchTab('user')">👥 會員審核</div>
+            <div class="tab" data-type="notify" onclick="switchTab('notify')">📢 發布通知</div>
+        </div>
+
+        <div id="sec-files" class="section active">
+            <div class="manager-wrapper">
+                <div class="tree-panel" id="treeRoot" oncontextmenu="openMenu(event, null)">
+                    <div style="text-align:center; padding:50px; color:#999;">讀取中...</div>
+                </div>
+                <div class="action-panel">
+                    <h4 style="margin-top:0;">操作說明</h4>
+                    <p style="font-size:13px; color:#666; line-height:1.6;">
+                        1. 點擊右側 <b style="color:#3498db">⋮</b> 按鈕開啟選單。<br>
+                        2. 電腦版亦可支援 <b style="color:#e74c3c">右鍵</b> 操作。<br>
+                        3. 如需新增大資料夾，請按下方虛線按鈕。<br>
+                        4. 操作後請務必按儲存。
+                    </p>
+                    <button class="btn btn-migrate" onclick="migrateFromConfig()">⚠️ 從 Config.js 重置匯入</button>
+                    
+                    <div style="margin-top:auto;">
+                        <div id="statusText" style="text-align:right; font-size:12px; color:#888; margin-bottom:5px;">資料已同步</div>
+                        <button class="btn btn-save disabled" id="saveBtn" onclick="saveToCloud()">💾 儲存變更到雲端</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="sec-user" class="section">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <h3>註冊會員列表</h3>
+                <button class="btn" style="width:auto; background:#eee; color:#333;" onclick="loadUsers()">🔄 重新整理</button>
+            </div>
+            <ul class="user-list" id="userList"></ul>
+        </div>
+
+        <div id="sec-notify" class="section">
+            <div class="form-group">
+                <label>📢 網站全域公告</label>
+                <textarea id="notifyText" placeholder="輸入公告內容..."></textarea>
+            </div>
+            <div class="form-group">
+                <label>預覽：</label>
+                <div style="background:#fff3cd; color:#856404; padding:10px; border-radius:5px; border:1px solid #ffeeba;">
+                    📢 <span id="previewText">(無)</span>
+                </div>
+            </div>
+            <button class="btn btn-post" onclick="postNotification()">🚀 發布公告</button>
+            <button class="btn btn-clear" onclick="clearNotification()">🗑️ 清除公告</button>
+        </div>
+    </div>
+
+    <div id="ctx-menu">
+        <div class="ctx-item" onclick="ctxAction('newFolder')"><span>📁</span> 新增資料夾</div>
+        <div class="ctx-item" onclick="ctxAction('newFile')"><span>📄</span> 新增檔案/連結</div>
+        <div class="ctx-divider"></div>
+        <div class="ctx-item" onclick="ctxAction('rename')"><span>✏️</span> 重新命名</div>
+        <div class="ctx-item" onclick="ctxAction('delete')" style="color:#e74c3c;"><span>🗑️</span> 刪除</div>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
+    <script>
+        // 🟢 Firebase Config
+        const firebaseConfig = {
+            apiKey: "AIzaSyBZe0HHikgGG9hS3g32jWJ-fzESOTB3Zdw",
+            authDomain: "jiachang-2cda4.firebaseapp.com",
+            projectId: "jiachang-2cda4",
+            storageBucket: "jiachang-2cda4.firebasestorage.app",
+            messagingSenderId: "752423213714",
+            appId: "1:752423213714:web:e03fc6967d355e9bbc644b",
+            measurementId: "G-8GETJKDCEW"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        let fileStructure = [];
+        let isDirty = false;
+        let activeItem = null, activeParentArray = null, activeIndex = -1;
+
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                document.getElementById('login-panel').style.display = 'none';
+                document.getElementById('main-panel').style.display = 'flex';
+                document.getElementById('adminName').innerText = user.email;
+                loadFromCloud(); loadUsers(); loadCurrentNotification();
+            } else {
+                document.getElementById('login-panel').style.display = 'flex';
+                document.getElementById('main-panel').style.display = 'none';
+            }
+        });
+
+        function doLogin() {
+            auth.signInWithEmailAndPassword(document.getElementById('admEmail').value, document.getElementById('admPass').value)
+                .catch(e => document.getElementById('loginMsg').innerText = e.message);
+        }
+
+        // ==========================
+        // 🟢 檔案管理 (雙軌操作：右鍵 + 按鈕)
+        // ==========================
+        function loadFromCloud() {
+            db.collection('system').doc('files').get().then(doc => {
+                if (doc.exists && doc.data().items) {
+                    fileStructure = doc.data().items;
+                    renderTree(); markSaved();
+                } else {
+                    document.getElementById('treeRoot').innerHTML = '<div style="text-align:center; padding:50px;">雲端無資料，請按匯入</div>';
+                }
+            }).catch(e => console.error(e));
+        }
+
+        function saveToCloud() {
+            if (!isDirty) return;
+            const btn = document.getElementById('saveBtn');
+            btn.innerText = "儲存中...";
+            db.collection('system').doc('files').set({ items: fileStructure }).then(() => {
+                alert("儲存成功！"); markSaved();
+            }).catch(e => alert("儲存失敗：" + e.message));
+        }
+
+        function migrateFromConfig() {
+            if(!confirm("確定要從 config.js 覆蓋雲端資料嗎？")) return;
+            fileStructure = JSON.parse(JSON.stringify(CONFIG.items));
+            renderTree(); markDirty();
+        }
+
+        function renderTree() {
+            const root = document.getElementById('treeRoot');
+            root.innerHTML = '';
+            
+            if (fileStructure.length > 0) {
+                renderNodes(fileStructure, root);
+            }
+
+            // 🟢 新增：底部的「新增根目錄資料夾」按鈕
+            const addRootBtn = document.createElement('div');
+            addRootBtn.className = 'add-root-btn';
+            addRootBtn.innerHTML = '<span>➕ 新增根目錄資料夾</span>';
+            addRootBtn.onclick = () => {
+                activeItem = null; 
+                activeParentArray = fileStructure; 
+                ctxAction('newFolder');
+            };
+            root.appendChild(addRootBtn);
+        }
+
+        function renderNodes(items, container) {
+            items.forEach((item, index) => {
+                const el = document.createElement('div');
+                // 🟢 每個節點都加上 ⋮ 按鈕
+                const menuBtn = `<span class="node-menu-btn" onclick="openMenu(event, this.parentElement.itemRef, this.parentElement.parentRef, ${index})">⋮</span>`;
+                
+                el.itemRef = item;
+                el.parentRef = items;
+
+                if (item.type === 'folder') {
+                    el.className = 'node folder';
+                    // 內容區 + 按鈕區
+                    el.innerHTML = `<div class="node-content"><span class="node-icon">📁</span> <span class="node-text">${item.name}</span></div> ${menuBtn}`;
+                    el.oncontextmenu = (e) => { e.stopPropagation(); openMenu(e, item, items, index); };
+                    
+                    const childBox = document.createElement('div');
+                    childBox.className = 'indent';
+                    renderNodes(item.children, childBox);
+                    
+                    container.appendChild(el); 
+                    container.appendChild(childBox);
+                } else {
+                    el.className = 'node file';
+                    el.innerHTML = `<div class="node-content"><span class="node-icon">📄</span> <span class="node-text">${item.name}</span></div> ${menuBtn}`;
+                    el.oncontextmenu = (e) => { e.stopPropagation(); openMenu(e, item, items, index); };
+                    container.appendChild(el);
+                }
+            });
+        }
+
+        function openMenu(e, item, parentArray, index) {
+            e.preventDefault();
+            e.stopPropagation(); // 防止冒泡
+            const menu = document.getElementById('ctx-menu');
+            activeItem = item; 
+            activeParentArray = parentArray || fileStructure; 
+            activeIndex = index;
+            
+            // 計算位置：如果是滑鼠右鍵(type=contextmenu)，用滑鼠座標
+            // 如果是點擊按鈕(type=click)，顯示在按鈕附近
+            let x, y;
+            if(e.type === 'click') {
+                const rect = e.target.getBoundingClientRect();
+                x = rect.left - 100; // 稍微往左一點
+                y = rect.bottom + 5;
+            } else {
+                x = e.pageX;
+                y = e.pageY;
+            }
+
+            // 邊界檢查 (簡單版)
+            if(x < 10) x = 10;
+
+            menu.style.display = 'block'; 
+            menu.style.left = x + 'px'; 
+            menu.style.top = y + 'px';
+            
+            document.addEventListener('click', () => menu.style.display = 'none', { once: true });
+        }
+
+        // Modal Action Logic
+        function ctxAction(action) {
+            document.getElementById('ctx-menu').style.display = 'none';
+            
+            if (action === 'newFolder') {
+                showModal('input', '新增資料夾', '請輸入資料夾名稱', [{id:'folderName', placeholder:'例如：第三章'}], 'icon-blue', '📁', (vals) => {
+                    if (!vals.folderName) return;
+                    const newItem = { type: 'folder', name: vals.folderName, children: [] };
+                    (activeItem && activeItem.type === 'folder' ? activeItem.children : activeParentArray).push(newItem);
+                    finishAction();
+                });
+            } else if (action === 'newFile') {
+                showModal('input', '新增檔案/連結', '請輸入名稱與路徑', [
+                    {id:'fileName', placeholder:'顯示名稱 (例：講義.pdf)'},
+                    {id:'filePath', placeholder:'路徑或網址 (例：file/doc.pdf)'}
+                ], 'icon-blue', '📄', (vals) => {
+                    if (!vals.fileName) return;
+                    let icon = "📄";
+                    if(vals.filePath.includes('youtu')) icon = "🎥";
+                    else if(vals.filePath.match(/\.(jpg|png)$/i)) icon = "🖼️";
+                    
+                    const newItem = { type: 'file', name: vals.fileName, path: vals.filePath, note: '', icon: icon };
+                    (activeItem && activeItem.type === 'folder' ? activeItem.children : activeParentArray).push(newItem);
+                    finishAction();
+                });
+            } else if (action === 'rename' && activeItem) {
+                showModal('input', '重新命名', '請輸入新的名稱', [{id:'newName', val:activeItem.name}], 'icon-blue', '✏️', (vals) => {
+                    if (vals.newName) { activeItem.name = vals.newName; finishAction(); }
+                });
+            } else if (action === 'delete' && activeItem) {
+                showModal('confirm', '確認刪除', `確定要刪除「${activeItem.name}」嗎？`, [], 'icon-red', '!', () => {
+                    activeParentArray.splice(activeIndex, 1);
+                    finishAction();
+                });
+            }
+        }
+
+        function finishAction() {
+            markDirty();
+            renderTree();
+            closeModal();
+        }
+
+        // Modal Helper
+        function showModal(type, title, desc, inputs, iconClass, iconText, callback) {
+            const overlay = document.getElementById('custom-modal-overlay');
+            const content = document.getElementById('modal-content');
+            const confirmBtn = document.getElementById('modal-confirm-btn');
+            
+            document.getElementById('modal-icon').className = 'modal-icon-wrapper ' + iconClass;
+            document.getElementById('modal-icon').innerText = iconText;
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-desc').innerText = desc;
+            
+            content.innerHTML = '';
+            inputs.forEach(inp => {
+                const el = document.createElement('input');
+                el.type = 'text'; el.className = 'modal-input';
+                el.id = inp.id; el.placeholder = inp.placeholder || '';
+                if(inp.val) el.value = inp.val;
+                content.appendChild(el);
+            });
+
+            confirmBtn.className = 'modal-btn btn-confirm ' + (iconClass === 'icon-red' ? 'danger' : '');
+            confirmBtn.onclick = () => {
+                const values = {};
+                inputs.forEach(inp => values[inp.id] = document.getElementById(inp.id).value.trim());
+                callback(values);
+            };
+
+            overlay.style.display = 'flex';
+            setTimeout(() => overlay.classList.add('show'), 10);
+        }
+
+        function closeModal() {
+            const overlay = document.getElementById('custom-modal-overlay');
+            overlay.classList.remove('show');
+            setTimeout(() => overlay.style.display = 'none', 300);
+        }
+
+        function markDirty() {
+            isDirty = true;
+            document.getElementById('treeRoot').classList.add('unsaved');
+            const btn = document.getElementById('saveBtn');
+            btn.classList.remove('disabled');
+            btn.innerText = "💾 儲存變更到雲端 (未儲存)";
+            document.getElementById('statusText').innerText = "⚠️ 變更未儲存";
+        }
+        function markSaved() {
+            isDirty = false;
+            document.getElementById('treeRoot').classList.remove('unsaved');
+            const btn = document.getElementById('saveBtn');
+            btn.classList.add('disabled');
+            btn.innerText = "💾 儲存變更到雲端";
+            document.getElementById('statusText').innerText = "資料已同步";
+        }
+
+        // 会員/公告
+        function loadUsers() {
+            const list = document.getElementById('userList');
+            list.innerHTML = '<li style="text-align:center;">讀取中...</li>';
+            db.collection("users").orderBy("createdAt", "desc").get().then(snapshot => {
+                let html = '';
+                snapshot.forEach(doc => {
+                    const u = doc.data();
+                    const isPending = u.status === 'pending';
+                    html += `<li class="user-item">
+                        <div class="user-info"><div><span class="u-name">${u.name}</span> <span class="u-status ${isPending?'status-pending':'status-approved'}">${isPending?'待審':'已通'}</span></div><small style="color:#888;">${u.email}</small></div>
+                        ${isPending ? `<button class="btn btn-approve" onclick="approveUser('${doc.id}')">核准</button>` : ''}
+                    </li>`;
+                });
+                list.innerHTML = html || '<li style="text-align:center;">無會員</li>';
+            });
+        }
+        function approveUser(uid) { if(confirm("核准？")) db.collection("users").doc(uid).update({status:"approved"}).then(loadUsers); }
+        function loadCurrentNotification() { db.collection("system").doc("announcement").get().then(doc => { const t = (doc.exists&&doc.data().active)?doc.data().text:""; document.getElementById("notifyText").value=t; document.getElementById("previewText").innerText=t||"(無)"; }); document.getElementById("notifyText").addEventListener("input", function(){ document.getElementById("previewText").innerText=this.value||"(無)"; }); }
+        function postNotification() { const t=document.getElementById("notifyText").value.trim(); if(!t)return alert("請輸入"); db.collection("system").doc("announcement").set({text:t, active:true, timestamp:new Date()}).then(()=>alert("已發布")); }
+        function clearNotification() { if(confirm("清除？")) db.collection("system").doc("announcement").set({text:"", active:false}).then(()=>{ document.getElementById("notifyText").value=""; document.getElementById("previewText").innerText="(無)"; alert("已清除"); }); }
+        function switchTab(type) { document.querySelectorAll('.section').forEach(el=>el.classList.remove('active')); document.querySelectorAll('.tab').forEach(el=>el.classList.remove('active')); document.getElementById('sec-'+type).classList.add('active'); document.querySelector(`.tab[data-type="${type}"]`).classList.add('active'); }
+    </script>
+</body>
+</html>
