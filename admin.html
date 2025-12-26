@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>網站管理後台 - 全平台通用版</title>
+    <title>網站管理後台 - 可收合版</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
         /* --- 全域設定 --- */
@@ -23,7 +23,7 @@
         .section { display: none; animation: fadeIn 0.3s; flex-grow: 1; }
         .section.active { display: flex; flex-direction: column; }
         
-        /* 🟢 檔案總管佈局 */
+        /* 檔案總管 */
         .manager-wrapper { display: flex; gap: 20px; min-height: 500px; border: 1px solid #eee; border-radius: 12px; padding: 10px; background: #fafafa; }
         .tree-panel { flex: 2; background: white; border-radius: 8px; border: 1px solid #eee; padding: 15px; overflow-y: auto; position: relative; }
         .tree-panel.unsaved { border-color: #f39c12; background: #fffdf5; }
@@ -37,37 +37,37 @@
             .container { padding: 15px; }
         }
 
-        /* 🟢 樹狀節點樣式 (包含選單按鈕) */
+        /* 🟢 樹狀節點 (包含收合功能) */
         .node { 
             padding: 6px 10px; margin: 4px 0; border-radius: 6px; 
-            display: flex; align-items: center; justify-content: space-between; /* 關鍵：讓文字靠左，按鈕靠右 */
+            display: flex; align-items: center; justify-content: space-between;
             transition: 0.2s; user-select: none; font-size: 15px; background: #fff; border: 1px solid transparent;
         }
         .node:hover { background: #f0f7ff; border-color: #d6eaf8; }
         
-        /* 節點內容區 */
         .node-content { display: flex; align-items: center; flex-grow: 1; overflow: hidden; cursor: pointer; }
         .node.folder .node-content { font-weight: bold; color: #2c3e50; }
         .node.file .node-content { color: #666; }
+        
+        /* 🟢 收合箭頭樣式 */
+        .caret { 
+            display: inline-block; width: 24px; text-align: center; 
+            transition: transform 0.2s; color: #999; font-size: 12px; cursor: pointer;
+        }
+        .caret.expanded { transform: rotate(90deg); } /* 展開時旋轉 */
+        .caret.hidden { opacity: 0; pointer-events: none; } /* 檔案的隱形箭頭 (佔位用) */
+
         .node-icon { margin-right: 8px; width: 24px; text-align: center; flex-shrink: 0; }
         .node-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         
-        .indent { margin-left: 20px; border-left: 1px solid #eee; }
+        /* 🟢 子層級容器 (收合用) */
+        .children-container { margin-left: 20px; border-left: 1px solid #eee; display: block; }
+        .children-container.collapsed { display: none; } /* 收合時隱藏 */
 
-        /* 🟢 選單按鈕 (三個點) */
-        .node-menu-btn {
-            padding: 4px 8px; color: #aaa; cursor: pointer; font-weight: bold; font-size: 18px;
-            border-radius: 4px; transition: 0.2s; flex-shrink: 0; margin-left: 10px;
-        }
+        .node-menu-btn { padding: 4px 8px; color: #aaa; cursor: pointer; font-weight: bold; font-size: 18px; border-radius: 4px; transition: 0.2s; flex-shrink: 0; margin-left: 10px; }
         .node-menu-btn:hover { background: #e0e0e0; color: #333; }
         
-        /* 新增根目錄按鈕 */
-        .add-root-btn {
-            display: flex; align-items: center; justify-content: center;
-            margin-top: 15px; padding: 12px;
-            border: 2px dashed #ddd; border-radius: 8px;
-            color: #888; font-weight: bold; cursor: pointer; transition: 0.2s;
-        }
+        .add-root-btn { display: flex; align-items: center; justify-content: center; margin-top: 15px; padding: 12px; border: 2px dashed #ddd; border-radius: 8px; color: #888; font-weight: bold; cursor: pointer; transition: 0.2s; }
         .add-root-btn:hover { border-color: #3498db; color: #3498db; background: #f0f8ff; }
 
         /* 通用元件 */
@@ -90,7 +90,7 @@
         .btn-approve { background: #27ae60; color: white; padding: 6px 12px; width: auto; font-size: 13px; }
         .btn-migrate { background: #e74c3c; color: white; font-size: 12px; width: auto; padding: 5px 10px; }
 
-        /* 🟢 右鍵選單 (Context Menu) */
+        /* 右鍵選單 */
         #ctx-menu { position: fixed; background: white; border: 1px solid #ddd; box-shadow: 0 5px 15px rgba(0,0,0,0.2); border-radius: 8px; padding: 5px 0; z-index: 1000; display: none; width: 160px; }
         .ctx-item { padding: 12px 15px; cursor: pointer; font-size: 15px; color: #333; display: flex; align-items: center; }
         .ctx-item span { margin-right: 10px; width: 20px; text-align: center; }
@@ -102,21 +102,10 @@
         .login-box { background: white; padding: 40px; border-radius: 16px; width: 100%; max-width: 350px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
         .login-input { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
 
-        /* 🟢 自訂 Modal */
-        #custom-modal-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(4px);
-            z-index: 2000; display: none;
-            justify-content: center; align-items: center; padding: 20px;
-            opacity: 0; transition: opacity 0.3s;
-        }
+        /* Modal */
+        #custom-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(4px); z-index: 2000; display: none; justify-content: center; align-items: center; padding: 20px; opacity: 0; transition: opacity 0.3s; }
         #custom-modal-overlay.show { opacity: 1; }
-        .modal-box {
-            background: white; width: 100%; max-width: 400px;
-            padding: 30px; border-radius: 16px;
-            box-shadow: 0 15px 40px rgba(0,0,0,0.2);
-            text-align: center; transform: scale(0.9); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
+        .modal-box { background: white; width: 100%; max-width: 400px; padding: 30px; border-radius: 16px; box-shadow: 0 15px 40px rgba(0,0,0,0.2); text-align: center; transform: scale(0.9); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         #custom-modal-overlay.show .modal-box { transform: scale(1); }
         .modal-icon-wrapper { width: 60px; height: 60px; margin: 0 auto 15px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 30px; }
         .icon-blue { background: #e3f2fd; color: #2196f3; }
@@ -182,8 +171,8 @@
                 <div class="action-panel">
                     <h4 style="margin-top:0;">操作說明</h4>
                     <p style="font-size:13px; color:#666; line-height:1.6;">
-                        1. 點擊右側 <b style="color:#3498db">⋮</b> 按鈕開啟選單。<br>
-                        2. 電腦版亦可支援 <b style="color:#e74c3c">右鍵</b> 操作。<br>
+                        1. 點擊 <b style="color:#2980b9">▶ 箭頭</b> 可收合/展開資料夾。<br>
+                        2. 點擊右側 <b style="color:#3498db">⋮</b> 按鈕開啟選單。<br>
                         3. 如需新增大資料夾，請按下方虛線按鈕。<br>
                         4. 操作後請務必按儲存。
                     </p>
@@ -272,7 +261,7 @@
         }
 
         // ==========================
-        // 🟢 檔案管理 (雙軌操作：右鍵 + 按鈕)
+        // 🟢 檔案管理 (含收合功能)
         // ==========================
         function loadFromCloud() {
             db.collection('system').doc('files').get().then(doc => {
@@ -308,7 +297,6 @@
                 renderNodes(fileStructure, root);
             }
 
-            // 🟢 新增：底部的「新增根目錄資料夾」按鈕
             const addRootBtn = document.createElement('div');
             addRootBtn.className = 'add-root-btn';
             addRootBtn.innerHTML = '<span>➕ 新增根目錄資料夾</span>';
@@ -323,27 +311,48 @@
         function renderNodes(items, container) {
             items.forEach((item, index) => {
                 const el = document.createElement('div');
-                // 🟢 每個節點都加上 ⋮ 按鈕
                 const menuBtn = `<span class="node-menu-btn" onclick="openMenu(event, this.parentElement.itemRef, this.parentElement.parentRef, ${index})">⋮</span>`;
                 
                 el.itemRef = item;
                 el.parentRef = items;
 
                 if (item.type === 'folder') {
+                    // 資料夾: 加入 Caret (箭頭)
                     el.className = 'node folder';
-                    // 內容區 + 按鈕區
-                    el.innerHTML = `<div class="node-content"><span class="node-icon">📁</span> <span class="node-text">${item.name}</span></div> ${menuBtn}`;
+                    // 預設展開
+                    if (item.collapsed === undefined) item.collapsed = false; 
+                    const caretClass = item.collapsed ? 'caret' : 'caret expanded';
+                    
+                    el.innerHTML = `<div class="node-content"><span class="${caretClass}">▶</span><span class="node-icon">📁</span><span class="node-text">${item.name}</span></div> ${menuBtn}`;
+                    
+                    // 點擊事件：右鍵->選單，左鍵(內容區)->切換收合
                     el.oncontextmenu = (e) => { e.stopPropagation(); openMenu(e, item, items, index); };
                     
                     const childBox = document.createElement('div');
-                    childBox.className = 'indent';
-                    renderNodes(item.children, childBox);
+                    childBox.className = item.collapsed ? 'children-container collapsed' : 'children-container';
                     
+                    // 🟢 點擊內容區 (包含箭頭和圖示) 切換收合
+                    el.querySelector('.node-content').onclick = (e) => {
+                        e.stopPropagation();
+                        item.collapsed = !item.collapsed; // 更新狀態
+                        // 更新 UI
+                        const caret = el.querySelector('.caret');
+                        if(item.collapsed) {
+                            caret.classList.remove('expanded');
+                            childBox.classList.add('collapsed');
+                        } else {
+                            caret.classList.add('expanded');
+                            childBox.classList.remove('collapsed');
+                        }
+                    };
+
+                    renderNodes(item.children, childBox);
                     container.appendChild(el); 
                     container.appendChild(childBox);
                 } else {
+                    // 檔案: 隱形箭頭佔位
                     el.className = 'node file';
-                    el.innerHTML = `<div class="node-content"><span class="node-icon">📄</span> <span class="node-text">${item.name}</span></div> ${menuBtn}`;
+                    el.innerHTML = `<div class="node-content"><span class="caret hidden">▶</span><span class="node-icon">📄</span><span class="node-text">${item.name}</span></div> ${menuBtn}`;
                     el.oncontextmenu = (e) => { e.stopPropagation(); openMenu(e, item, items, index); };
                     container.appendChild(el);
                 }
@@ -352,25 +361,21 @@
 
         function openMenu(e, item, parentArray, index) {
             e.preventDefault();
-            e.stopPropagation(); // 防止冒泡
+            e.stopPropagation();
             const menu = document.getElementById('ctx-menu');
             activeItem = item; 
             activeParentArray = parentArray || fileStructure; 
             activeIndex = index;
             
-            // 計算位置：如果是滑鼠右鍵(type=contextmenu)，用滑鼠座標
-            // 如果是點擊按鈕(type=click)，顯示在按鈕附近
             let x, y;
             if(e.type === 'click') {
                 const rect = e.target.getBoundingClientRect();
-                x = rect.left - 100; // 稍微往左一點
+                x = rect.left - 100;
                 y = rect.bottom + 5;
             } else {
                 x = e.pageX;
                 y = e.pageY;
             }
-
-            // 邊界檢查 (簡單版)
             if(x < 10) x = 10;
 
             menu.style.display = 'block'; 
@@ -380,15 +385,16 @@
             document.addEventListener('click', () => menu.style.display = 'none', { once: true });
         }
 
-        // Modal Action Logic
         function ctxAction(action) {
             document.getElementById('ctx-menu').style.display = 'none';
             
             if (action === 'newFolder') {
                 showModal('input', '新增資料夾', '請輸入資料夾名稱', [{id:'folderName', placeholder:'例如：第三章'}], 'icon-blue', '📁', (vals) => {
                     if (!vals.folderName) return;
-                    const newItem = { type: 'folder', name: vals.folderName, children: [] };
+                    const newItem = { type: 'folder', name: vals.folderName, children: [], collapsed: false };
                     (activeItem && activeItem.type === 'folder' ? activeItem.children : activeParentArray).push(newItem);
+                    // 如果是在資料夾內新增，自動展開該資料夾
+                    if(activeItem && activeItem.type === 'folder') activeItem.collapsed = false;
                     finishAction();
                 });
             } else if (action === 'newFile') {
@@ -403,6 +409,7 @@
                     
                     const newItem = { type: 'file', name: vals.fileName, path: vals.filePath, note: '', icon: icon };
                     (activeItem && activeItem.type === 'folder' ? activeItem.children : activeParentArray).push(newItem);
+                    if(activeItem && activeItem.type === 'folder') activeItem.collapsed = false;
                     finishAction();
                 });
             } else if (action === 'rename' && activeItem) {
