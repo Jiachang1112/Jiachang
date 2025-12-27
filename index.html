@@ -382,6 +382,7 @@
         // --- 🟢 核心：從雲端讀取檔案結構 (包含最愛與篩選邏輯) ---
         let pathStack = [];
         let allFilesFlat = [];
+        let allFoldersFlat = []; // 🟢 新增：用來儲存所有資料夾以便搜尋最愛
         let cloudItems = []; 
         let userFavorites = []; // 儲存使用者的最愛連結
         let isViewFavoritesMode = false; // 是否正在看最愛模式
@@ -416,6 +417,10 @@
                     // 1. 更新全域變數
                     cloudItems = doc.data().items;
                     allFilesFlat = flattenItems(cloudItems);
+                    
+                    // 🟢 新增：清空並重新處理資料夾路徑
+                    allFoldersFlat = [];
+                    processFolderPaths(cloudItems);
 
                     // 2. 判斷目前狀態並重新渲染
                     // 如果目前是在「搜尋模式」或是「我的最愛模式」，可能需要特別處理
@@ -433,6 +438,7 @@
                     // 如果雲端資料被清空
                     cloudItems = [];
                     allFilesFlat = [];
+                    allFoldersFlat = [];
                     renderList([]);
                 }
             }, error => {
@@ -447,8 +453,10 @@
 
             // 1. 決定資料來源
             if (isViewFavoritesMode) {
-                // 如果在「我的最愛」模式，從所有檔案中篩選出有收藏的
-                itemsToRender = allFilesFlat.filter(item => userFavorites.includes(item.path));
+                // 如果在「我的最愛」模式，從所有檔案與資料夾中篩選出有收藏的
+                const allItems = [...allFilesFlat, ...allFoldersFlat];
+                itemsToRender = allItems.filter(item => userFavorites.includes(item.path));
+                
                 document.getElementById("breadcrumb-container").innerHTML = `<span class="breadcrumb-current">⭐ 我的最愛</span>`;
                 document.getElementById("backBtn").classList.remove("hidden");
                 document.getElementById("backBtn").onclick = exitFavoritesView;
@@ -519,6 +527,23 @@
             return result;
         }
 
+        // 🟢 新增：遞迴幫資料夾產生虛擬路徑 ID，並收集到 allFoldersFlat
+        function processFolderPaths(items, parentPath = '') {
+            items.forEach(item => {
+                if (item.type === 'folder') {
+                    // 自動產生路徑 ID (例如: "網站架設/my-line-bot")
+                    // 我們將這個 ID 存入 item.path，這樣 toggleFavorite 就能通用了
+                    item.path = parentPath ? parentPath + '/' + item.name : item.name;
+                    
+                    allFoldersFlat.push(item);
+
+                    if (item.children) {
+                        processFolderPaths(item.children, item.path);
+                    }
+                }
+            });
+        }
+
         function handleSearch() {
             const query = document.getElementById('searchInput').value.toLowerCase().trim();
             const navBar = document.querySelector('.nav-bar');
@@ -564,9 +589,29 @@
             items.forEach(item => {
                 if (item.type === 'folder') {
                     const div = document.createElement("div");
+                    
+                    // 🟢 新增：檢查資料夾是否被收藏
+                    const isFav = userFavorites.includes(item.path);
+                    const starClass = isFav ? 'active' : '';
+
                     div.className = "list-item folder-item";
-                    div.innerHTML = `<div class="item-icon">📁</div><div class="item-info"><div class="item-name">${item.name}</div><div class="item-note">${item.children ? item.children.length + ' 個項目' : '空資料夾'}</div></div><div class="item-arrow">➤</div>`;
-                    div.onclick = () => enterFolder(item);
+                    
+                    // 🟢 修改 HTML：加入 star-icon
+                    div.innerHTML = `
+                        <span class="star-icon ${starClass}" onclick="toggleFavorite(event, '${item.path}')">★</span>
+                        <div class="item-icon">📁</div>
+                        <div class="item-info">
+                            <div class="item-name">${item.name}</div>
+                            <div class="item-note">${item.children ? item.children.length + ' 個項目' : '空資料夾'}</div>
+                        </div>
+                        <div class="item-arrow">➤</div>`;
+                        
+                    // 點擊事件 (要避開星星)
+                    div.onclick = (e) => {
+                         if(!e.target.classList.contains('star-icon')) {
+                            enterFolder(item);
+                         }
+                    };
                     container.appendChild(div);
                 } else {
                     renderFileItem(container, item, item.name);
