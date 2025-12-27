@@ -174,14 +174,12 @@
         .btn-confirm-red { background: #ff4757; color: white; flex: 1; }
         .btn-confirm-red:hover { background: #e84118; }
 
-        /* 🔴 新增：手勢觸發區樣式 (用於隱藏機關) */
+        /* 🔴 手勢樣式：恢復成普通文字樣式 (因為我們改用 Console 觸發了) */
         .secret-hand {
-            cursor: default; /* 保持原本游標 */
-            user-select: none; /* 防止被選取 */
-            transition: transform 0.2s;
+            cursor: default; 
+            user-select: none;
             display: inline-block;
         }
-        /* 移除 active 效果，避免看起來像按鈕 */
 
         @media (max-width: 600px) {
             .container { margin: 0; border-radius: 0; min-height: 100vh; }
@@ -316,17 +314,18 @@
         const TEMP_CONFIG = {
             passcode: "Jiachang",           
             email: "jiachang@guest.com",   
-            passwordToken: "SmlhIGNoYW5n", 
+            passwordToken: "SmlhY2hhbmc=", 
             
             duration: 3 * 60 * 1000        
         };
 
-        // 🔴 修改：改為 Console 觸發的臨時登入函式
-        // 將函式掛載到 window 物件，這樣你在 F12 Console 才能呼叫它
-        window.guestLogin = function(inputPass) {
-            // 檢查是否輸入了密碼
+        // 🔴 修改：在 Console 輸入 guest() 觸發
+        window.guest = function() {
+            // 直接跳出輸入框問密碼
+            const inputPass = prompt("🔐 請輸入臨時通關密碼：");
+            
             if (!inputPass) {
-                console.warn("❌ 請輸入密碼！用法: guestLogin('你的密碼')");
+                console.log("已取消登入。");
                 return;
             }
 
@@ -369,11 +368,12 @@
                     });
             } else {
                 console.error("🚫 密碼錯誤！");
+                alert("密碼錯誤！");
             }
         };
         
-        // 為了方便你確認，可以在 Console 印出提示 (可選)
-        console.log("%c🔧 系統已就緒，等待指令...", "color: #3498db; font-size: 12px; font-weight: bold;");
+        // 提示訊息
+        console.log("%c🔧 系統已就緒。如需訪客登入，請輸入 guest() 並按 Enter。", "color: #3498db; font-size: 12px; font-weight: bold;");
 
         // 🟢 2. 智慧問候
         function getGreeting() {
