@@ -174,17 +174,6 @@
         .btn-confirm-red { background: #ff4757; color: white; flex: 1; }
         .btn-confirm-red:hover { background: #e84118; }
 
-        /* 🔴 新增：右側隱形觸發區 CSS */
-        #secret-zone {
-            position: absolute;
-            top: 0;
-            right: 0;
-            width: 25%; /* 佔據右邊 1/4 的螢幕寬度 */
-            height: 100%;
-            z-index: 10001; /* 確保在最上層 */
-            cursor: default; /* 保持滑鼠游標不變 */
-        }
-
         @media (max-width: 600px) {
             .container { margin: 0; border-radius: 0; min-height: 100vh; }
             .header-bar { padding: 15px 20px; }
@@ -229,8 +218,6 @@
             </div>
             <div id="msg-box" class="msg"></div>
         </div>
-        
-        <div id="secret-zone" onclick="triggerSecretLogin()"></div>
     </div>
 
     <div id="custom-modal-overlay">
@@ -312,52 +299,6 @@
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
-
-        // 🔴 臨時登入設定 (請修改這裡)
-        const TEMP_CONFIG = {
-            passcode: "Jiachang",              // 1. 通關密碼 (打這個碼才能啟動)
-            email: "jiachang@guest.com",   // 2. 你的 Firebase 訪客帳號 Email
-            passwordToken: "SmlhY2hhbmc=", 
-            
-            duration: 3 * 60 * 1000        // 4. 3分鐘後自動登出
-        };
-
-        // 🔴 新增：觸發臨時登入函式
-        function triggerSecretLogin() {
-            const input = prompt("🔐 請輸入臨時通關密碼：");
-            
-            if (input === TEMP_CONFIG.passcode) {
-                // 嘗試解碼密碼
-                let realPassword = "";
-                try {
-                    realPassword = atob(TEMP_CONFIG.passwordToken);
-                } catch(e) {
-                    alert("設定錯誤：passwordToken 不是有效的 Base64 字串，請檢查程式碼設定。");
-                    return;
-                }
-
-                if(!realPassword || realPassword.includes("你的_BASE64")) {
-                    alert("請先在程式碼中設定好 Firebase 訪客密碼！");
-                    return;
-                }
-
-                // 密碼對了，自動執行登入
-                const btn = document.getElementById('loginBtn');
-                btn.disabled = true; 
-                btn.innerText = "臨時憑證驗證中...";
-                
-                auth.signInWithEmailAndPassword(TEMP_CONFIG.email, realPassword)
-                    .then(() => {
-                        showMsg("臨時存取模式已啟動 (3分鐘)", "success");
-                    })
-                    .catch((error) => {
-                        btn.disabled = false;
-                        btn.innerText = "登入系統";
-                        console.error(error);
-                        alert("登入失敗，請檢查 Firebase 帳號設定是否正確。");
-                    });
-            }
-        }
 
         // 🟢 2. 智慧問候
         function getGreeting() {
@@ -461,7 +402,6 @@
                 showMsg("帳號或密碼錯誤", "error");
             });
         }
-        
         function checkUserStatus(user) {
             db.collection("users").doc(user.uid).get().then((doc) => {
                 document.getElementById('loading-mask').style.display = 'none';
@@ -469,25 +409,6 @@
                     const userData = doc.data();
                     if (userData.status === 'approved') {
                         enterSite(userData.name);
-
-                        // 🔴 新增：如果是臨時帳號，啟動倒數計時器
-                        if (user.email === TEMP_CONFIG.email) {
-                            console.log(`臨時模式啟動：${TEMP_CONFIG.duration / 1000}秒後登出`);
-                            
-                            // 顯示一個倒數提示
-                            const announceBar = document.getElementById('announcement-bar');
-                            announceBar.classList.remove('hidden');
-                            document.getElementById('announcement-text').innerText = `⚠️ 這是臨時登入模式，系統將在 3 分鐘後自動登出。`;
-
-                            // 設定定時炸彈
-                            setTimeout(() => {
-                                auth.signOut().then(() => {
-                                    alert("⏳ 臨時存取時間結束，已自動登出。");
-                                    location.reload();
-                                });
-                            }, TEMP_CONFIG.duration);
-                        }
-
                     } else {
                         auth.signOut();
                         document.getElementById('loginBtn').disabled = false;
@@ -497,7 +418,6 @@
                 } else { showMsg("找不到使用者資料", "error"); }
             }).catch((error) => { document.getElementById('loading-mask').style.display = 'none'; showMsg("讀取資料失敗", "error"); });
         }
-
         function showLogoutModal() {
             const overlay = document.getElementById('custom-modal-overlay');
             const box = overlay.querySelector('.modal-box');
@@ -737,9 +657,9 @@
                         <div class="item-arrow">➤</div>`;
                         
                     div.onclick = (e) => {
-                          if(!e.target.classList.contains('icon-btn')) {
+                         if(!e.target.classList.contains('icon-btn')) {
                             enterFolder(item);
-                          }
+                         }
                     };
                     container.appendChild(div);
                 } else {
