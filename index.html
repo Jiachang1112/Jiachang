@@ -577,26 +577,30 @@
         function renderFileItem(container, item, displayName) {
             const div = document.createElement("div");
             
-            // --- 🟢 修改開始：更聰明的圖標判斷邏輯 ---
+            // --- 🟢 修改開始：強制連結圖示邏輯 ---
             let icon = item.icon; 
-            
-            // 如果資料庫沒指定圖標，我們自動判斷
-            if (!icon) {
-                // 1. 如果副檔名是常見文件 (PDF, Word, PPT)，維持用文件圖標
-                if (item.path && item.path.match(/\.(pdf|doc|docx|ppt|pptx|xls|xlsx)$/i)) {
-                    icon = '📄';
-                } 
-                // 2. 如果都不是上述檔案，但開頭是 http (代表是外部連結)，就用連結圖標
-                else if (item.path && item.path.startsWith('http')) {
+
+            // 🚀 新增邏輯：只要路徑是 http/https 開頭，且不是影片或圖片，強制使用連結圖示
+            // 這樣即使資料庫存成「📄」，顯示時也會自動更正為「🔗」
+            if (item.path && (item.path.startsWith('http://') || item.path.startsWith('https://'))) {
+                const isYoutube = item.path.includes('youtu');
+                const isImage = item.path.match(/\.(jpg|png|jpeg|gif|webp)$/i);
+                
+                // 如果不是 YouTube 也不是圖片，就認定是網頁連結
+                if (!isYoutube && !isImage) {
                     icon = '🔗';
-                } 
-                // 3. 其他預設
-                else {
+                }
+            }
+            
+            // 如果上述沒有抓到 icon (例如不是網址，且資料庫也沒存)，給予預設值
+            if (!icon) {
+                 if (item.path && item.path.match(/\.(pdf|doc|docx|ppt|pptx|xls|xlsx)$/i)) {
+                    icon = '📄';
+                } else {
                     icon = '📄';
                 }
             }
             // --- 🟢 修改結束 ---
-
             let fileType = getFileType(item);
             
             // 檢查是否已收藏
