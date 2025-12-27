@@ -398,11 +398,27 @@
                     renderNodes(item.children, childBox);
                     container.appendChild(el); container.appendChild(childBox);
                 } else {
-                    el.className = 'node file';
-                    el.innerHTML = `<div class="node-content"><span class="caret hidden">▶</span><span class="node-icon">📄</span><span class="node-text">${item.name}</span></div> ${menuBtn}`;
-                    el.oncontextmenu = (e) => { e.stopPropagation(); openMenu(e, item, items, index); };
-                    container.appendChild(el);
+                // --- 🟢 修改開始：加入圖示判斷邏輯 ---
+                let icon = item.icon || '📄'; // 優先使用資料庫存的圖示
+
+                // 強制檢查：如果是網址開頭，且不是 YouTube 或圖片，就顯示連結圖示
+                // 這樣可以修正舊資料顯示錯誤的問題
+                if (item.path && (item.path.startsWith('http://') || item.path.startsWith('https://'))) {
+                    const isYoutube = item.path.includes('youtu');
+                    const isImage = item.path.match(/\.(jpg|png|jpeg|gif|webp)$/i);
+                    
+                    if (!isYoutube && !isImage) {
+                        icon = '🔗';
+                    }
                 }
+                // --- 🟢 修改結束 ---
+
+                el.className = 'node file';
+                // 注意：這裡的 <span class="node-icon"> 裡面現在是用變數 ${icon}
+                el.innerHTML = `<div class="node-content"><span class="caret hidden">▶</span><span class="node-icon">${icon}</span><span class="node-text">${item.name}</span></div> ${menuBtn}`;
+                el.oncontextmenu = (e) => { e.stopPropagation(); openMenu(e, item, items, index); };
+                container.appendChild(el);
+            }
             });
         }
 
