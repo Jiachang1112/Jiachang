@@ -2,7 +2,7 @@
 
 const CONFIG = {
     // 1. 網頁標題
-    pageTitle: "我的教學資源下載",
+    pageTitle: "雲端資料庫",
 
     // 2. 檔案與資料夾清單
     items: [
