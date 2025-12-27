@@ -66,9 +66,20 @@
         .back-btn { background: var(--card-bg); border: 1px solid var(--border); padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 13px; margin-right: 15px; display: flex; align-items: center; color: var(--text-main); transition: 0.2s; }
         .back-btn:hover { background: var(--border); }
         #list-root { padding: 10px 0; flex-grow: 1; overflow-y: auto; }
+        
         .list-item { display: flex; align-items: center; padding: 18px 30px; border-bottom: 1px solid var(--border); cursor: pointer; transition: all 0.2s; position: relative; }
         .list-item:hover { background-color: var(--folder-bg); transform: translateX(5px); }
         .list-item:last-child { border-bottom: none; }
+        
+        /* 🟢 新增：置頂項目的樣式 */
+        .list-item.is-pinned { 
+            background-color: rgba(52, 152, 219, 0.05); /* 淡淡的藍色背景 */
+            border-left: 3px solid #3498db; /* 左邊加一條藍線 */
+        }
+        [data-theme="dark"] .list-item.is-pinned { 
+            background-color: rgba(52, 152, 219, 0.15); 
+        }
+
         .item-icon { font-size: 28px; margin-right: 20px; min-width: 40px; text-align: center; transition: 0.2s; }
         .folder-item .item-icon { color: #f39c12; }
         .file-item .item-icon[data-type="pdf"] { color: #e74c3c; } 
@@ -120,19 +131,26 @@
         }
         .fav-btn-view:hover { background: #f39c12; transform: translateY(-2px); }
 
-        /* 列表中的星星按鈕 */
-        .star-icon {
+        /* 按鈕群組 (星星與圖釘) */
+        .action-icons {
+            display: flex;
+            gap: 10px;
+            margin-right: 15px;
+        }
+
+        .icon-btn {
             font-size: 20px;
             cursor: pointer;
-            color: #bdc3c7; /* 預設灰色 */
-            margin-right: 15px;
+            color: #bdc3c7;
             transition: 0.2s;
             user-select: none;
         }
-        .star-icon:hover { transform: scale(1.2); }
-        .star-icon.active { color: #f1c40f; /* 啟用變金色 */ }
+        .icon-btn:hover { transform: scale(1.2); }
         
-        /* --- 🟢 Modal 彈窗樣式 (通用) --- */
+        .star-icon.active { color: #f1c40f; } /* 金色星星 */
+        .pin-icon.active { color: #3498db; transform: rotate(45deg); } /* 藍色圖釘 */
+        
+        /* --- 🟢 Modal 彈窗樣式 --- */
         #custom-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(4px); z-index: 2000; display: none; justify-content: center; align-items: center; padding: 20px; opacity: 0; transition: opacity 0.3s; }
         #custom-modal-overlay.show { opacity: 1; }
         .modal-box { background: white; width: 100%; max-width: 320px; padding: 30px; border-radius: 24px; box-shadow: 0 15px 40px rgba(0,0,0,0.2); text-align: center; transform: scale(0.9); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
@@ -140,9 +158,9 @@
         
         .modal-icon-wrapper { width: 70px; height: 70px; margin: 0 auto 20px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 32px; }
         .icon-blue { background: #e3f2fd; color: #2196f3; }
-        .icon-green { background: #e8f5e9; color: #4caf50; } /* 成功綠色 */
-        .icon-red { background: #ffebee; color: #f44336; } /* 錯誤紅色 */
-        .icon-warning { background: #ffebee; color: #f44336; font-size: 36px; } /* 登出警告 */
+        .icon-green { background: #e8f5e9; color: #4caf50; } 
+        .icon-red { background: #ffebee; color: #f44336; } 
+        .icon-warning { background: #ffebee; color: #f44336; font-size: 36px; } 
         
         .modal-title { font-size: 20px; font-weight: 800; color: #2c3e50; margin-bottom: 10px; }
         .modal-desc { font-size: 15px; color: #7f8c8d; margin-bottom: 25px; line-height: 1.5; }
@@ -150,7 +168,6 @@
         .modal-btn { width: 100%; padding: 12px; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 16px; background: #2c3e50; color: white; transition: 0.2s; }
         .modal-btn:hover { background: #34495e; transform: translateY(-2px); }
 
-        /* --- 🟢 登出確認按鈕群組 --- */
         .modal-btn-group { display: flex; gap: 10px; }
         .btn-cancel { background: #f1f2f6; color: #7f8c8d; flex: 1; }
         .btn-cancel:hover { background: #e2e6ea; }
@@ -405,7 +422,6 @@
             const overlay = document.getElementById('custom-modal-overlay');
             const box = overlay.querySelector('.modal-box');
 
-            // 🟢 填入登出專用的 HTML 結構
             box.innerHTML = `
                 <div class="modal-icon-wrapper icon-warning">⚠️</div>
                 <div class="modal-title">確認操作</div>
@@ -426,24 +442,27 @@
         // --- 🟢 核心：從雲端讀取檔案結構 (包含最愛與篩選邏輯) ---
         let pathStack = [];
         let allFilesFlat = [];
-        let allFoldersFlat = []; // 🟢 新增：用來儲存所有資料夾以便搜尋最愛
+        let allFoldersFlat = []; 
         let cloudItems = []; 
-        let userFavorites = []; // 儲存使用者的最愛連結
-        let isViewFavoritesMode = false; // 是否正在看最愛模式
+        let userFavorites = []; 
+        let userPinned = []; // 🟢 新增：儲存使用者的置頂項目
+        let isViewFavoritesMode = false;
 
-        // 🟢 修改後的 enterSite (加入讀取最愛)
+        // 🟢 修改後的 enterSite (讀取最愛 + 置頂)
         function enterSite(userName) {
             document.getElementById('auth-container').classList.add('hidden');
             document.getElementById('content').classList.remove('hidden');
             document.getElementById('user-display').innerText = `${getGreeting()}，${userName}`;
             
-            // 讀取使用者的最愛清單
             const uid = auth.currentUser.uid;
             db.collection("users").doc(uid).get().then((doc) => {
-                if(doc.exists && doc.data().favorites) {
-                    userFavorites = doc.data().favorites;
+                if(doc.exists) {
+                    const d = doc.data();
+                    userFavorites = d.favorites || [];
+                    userPinned = d.pinned || []; // 🟢 讀取置頂
                 } else {
                     userFavorites = [];
+                    userPinned = [];
                 }
                 initSite(); 
                 listenForAnnouncements(); 
@@ -454,32 +473,22 @@
             document.title = CONFIG.pageTitle;
             document.getElementById("page-title").innerText = CONFIG.pageTitle;
             
-            // 🟢 改成監聽雲端檔案變更 (Real-time Listener)
-            // onSnapshot 會在第一次連接時執行一次，之後每次資料變更都會自動再執行一次
             db.collection('system').doc('files').onSnapshot(doc => {
                 if (doc.exists && doc.data().items) {
-                    // 1. 更新全域變數
                     cloudItems = doc.data().items;
                     allFilesFlat = flattenItems(cloudItems);
                     
-                    // 🟢 新增：清空並重新處理資料夾路徑
                     allFoldersFlat = [];
                     processFolderPaths(cloudItems);
 
-                    // 2. 判斷目前狀態並重新渲染
-                    // 如果目前是在「搜尋模式」或是「我的最愛模式」，可能需要特別處理
-                    // 這裡簡單起見，我們先判斷是否在搜尋模式
                     const isSearching = document.querySelector('.nav-bar').classList.contains('hidden');
                     
                     if(isSearching && !isViewFavoritesMode) {
-                        // 如果正在搜尋，重新執行搜尋以更新結果
                         handleSearch();
                     } else {
-                        // 如果在一般瀏覽或最愛模式，重新整理當前畫面
                         refreshCurrentView();
                     }
                 } else {
-                    // 如果雲端資料被清空
                     cloudItems = [];
                     allFilesFlat = [];
                     allFoldersFlat = [];
@@ -487,7 +496,6 @@
                 }
             }, error => {
                 console.error("監聽失敗:", error);
-                // 可以選擇顯示錯誤訊息
             });
         }
 
@@ -495,20 +503,15 @@
         function refreshCurrentView() {
             let itemsToRender = [];
 
-            // 1. 決定資料來源
             if (isViewFavoritesMode) {
-                // 如果在「我的最愛」模式，從所有檔案與資料夾中篩選出有收藏的
                 const allItems = [...allFilesFlat, ...allFoldersFlat];
                 itemsToRender = allItems.filter(item => userFavorites.includes(item.path));
-                
                 document.getElementById("breadcrumb-container").innerHTML = `<span class="breadcrumb-current">⭐ 我的最愛</span>`;
                 document.getElementById("backBtn").classList.remove("hidden");
                 document.getElementById("backBtn").onclick = exitFavoritesView;
             } else if (document.querySelector('.nav-bar').classList.contains('hidden')) {
-                // 搜尋模式下，這裡通常不被呼叫，因為 handleSearch 自己處理了渲染
                 return; 
             } else {
-                // 一般資料夾模式
                 if (pathStack.length === 0) {
                     itemsToRender = cloudItems;
                 } else {
@@ -517,12 +520,10 @@
                 updateBreadcrumb();
             }
 
-            // 2. 執行篩選 (Filter)
             const filterType = document.getElementById('filterSelect').value;
             if (filterType !== 'all') {
                 itemsToRender = itemsToRender.filter(item => {
-                    if (item.type === 'folder') return true; // 資料夾在一般模式下永遠顯示，最愛模式下通常沒有資料夾
-                    
+                    if (item.type === 'folder') return true; 
                     let fileType = getFileType(item);
                     if (filterType === 'doc') return ['doc', 'pdf', 'ppt'].includes(fileType);
                     if (filterType === 'video') return fileType === 'video';
@@ -531,25 +532,29 @@
                 });
             }
 
-            // 3. 執行排序 (Sort) - 資料夾永遠在上面
             const sortType = document.getElementById('sortSelect').value;
-            // 複製一份陣列以免改到原始資料
+            
+            // 🟢 修改排序邏輯：置頂項目永遠在最上面
             itemsToRender = [...itemsToRender].sort((a, b) => {
-                // 資料夾權重最高
+                const isAPinned = userPinned.includes(a.path);
+                const isBPinned = userPinned.includes(b.path);
+
+                // 置頂判斷 (A置頂 B不置頂 -> A在前)
+                if (isAPinned && !isBPinned) return -1;
+                if (!isAPinned && isBPinned) return 1;
+
+                // 原有排序邏輯
                 if (a.type === 'folder' && b.type !== 'folder') return -1;
                 if (a.type !== 'folder' && b.type === 'folder') return 1;
 
-                // 同類型比較
                 if (sortType === 'name_asc') return a.name.localeCompare(b.name, "zh-Hant");
                 if (sortType === 'name_desc') return b.name.localeCompare(a.name, "zh-Hant");
                 if (sortType === 'type') {
-                    // 簡單用類型字串排序
                     return (a.type || '').localeCompare(b.type || '');
                 }
                 return 0;
             });
 
-            // 4. 渲染
             renderList(itemsToRender);
         }
 
@@ -571,16 +576,11 @@
             return result;
         }
 
-        // 🟢 新增：遞迴幫資料夾產生虛擬路徑 ID，並收集到 allFoldersFlat
         function processFolderPaths(items, parentPath = '') {
             items.forEach(item => {
                 if (item.type === 'folder') {
-                    // 自動產生路徑 ID (例如: "網站架設/my-line-bot")
-                    // 我們將這個 ID 存入 item.path，這樣 toggleFavorite 就能通用了
                     item.path = parentPath ? parentPath + '/' + item.name : item.name;
-                    
                     allFoldersFlat.push(item);
-
                     if (item.children) {
                         processFolderPaths(item.children, item.path);
                     }
@@ -595,13 +595,13 @@
 
             if (query.length > 0) {
                 navBar.classList.add('hidden');
-                toolbar.classList.add('hidden'); // 搜尋時隱藏工具列
-                isViewFavoritesMode = false; // 搜尋時退出最愛模式
+                toolbar.classList.add('hidden'); 
+                isViewFavoritesMode = false; 
                 
                 const matchedFiles = allFilesFlat.filter(item => 
                     item.name.toLowerCase().includes(query) || (item.note && item.note.toLowerCase().includes(query))
                 );
-                renderSearchList(matchedFiles, query); // 呼叫原本的 highlight 渲染
+                renderSearchList(matchedFiles, query); 
             } else {
                 navBar.classList.remove('hidden');
                 toolbar.classList.remove('hidden');
@@ -622,7 +622,6 @@
             });
         }
 
-        // 🟢 渲染列表 (包含星星邏輯)
         function renderList(items) {
             const container = document.getElementById("list-root");
             container.innerHTML = ""; 
@@ -634,15 +633,22 @@
                 if (item.type === 'folder') {
                     const div = document.createElement("div");
                     
-                    // 🟢 新增：檢查資料夾是否被收藏
                     const isFav = userFavorites.includes(item.path);
                     const starClass = isFav ? 'active' : '';
-
-                    div.className = "list-item folder-item";
                     
-                    // 🟢 修改 HTML：加入 star-icon
+                    // 🟢 檢查是否置頂
+                    const isPinned = userPinned.includes(item.path);
+                    const pinClass = isPinned ? 'active' : '';
+                    const pinnedItemClass = isPinned ? 'is-pinned' : ''; // 用於背景色
+
+                    div.className = `list-item folder-item ${pinnedItemClass}`;
+                    
+                    // 🟢 加入圖釘與星星
                     div.innerHTML = `
-                        <span class="star-icon ${starClass}" onclick="toggleFavorite(event, '${item.path}')">★</span>
+                        <div class="action-icons">
+                            <span class="icon-btn star-icon ${starClass}" onclick="toggleFavorite(event, '${item.path}')">★</span>
+                            <span class="icon-btn pin-icon ${pinClass}" onclick="togglePin(event, '${item.path}')">📌</span>
+                        </div>
                         <div class="item-icon">📁</div>
                         <div class="item-info">
                             <div class="item-name">${item.name}</div>
@@ -650,9 +656,8 @@
                         </div>
                         <div class="item-arrow">➤</div>`;
                         
-                    // 點擊事件 (要避開星星)
                     div.onclick = (e) => {
-                         if(!e.target.classList.contains('star-icon')) {
+                         if(!e.target.classList.contains('icon-btn')) {
                             enterFolder(item);
                          }
                     };
@@ -666,57 +671,46 @@
         function renderFileItem(container, item, displayName) {
             const div = document.createElement("div");
             
-            // --- 🟢 修改開始：強制連結圖示邏輯 ---
             let icon = item.icon; 
-
-            // 🚀 新增邏輯：只要路徑是 http/https 開頭，且不是影片或圖片，強制使用連結圖示
-            // 這樣即使資料庫存成「📄」，顯示時也會自動更正為「🔗」
             if (item.path && (item.path.startsWith('http://') || item.path.startsWith('https://'))) {
                 const isYoutube = item.path.includes('youtu');
                 const isImage = item.path.match(/\.(jpg|png|jpeg|gif|webp)$/i);
-                
-                // 如果不是 YouTube 也不是圖片，就認定是網頁連結
-                if (!isYoutube && !isImage) {
-                    icon = '🔗';
-                }
+                if (!isYoutube && !isImage) icon = '🔗';
             }
-            
-            // 如果上述沒有抓到 icon (例如不是網址，且資料庫也沒存)，給予預設值
-            if (!icon) {
-                 if (item.path && item.path.match(/\.(pdf|doc|docx|ppt|pptx|xls|xlsx)$/i)) {
-                    icon = '📄';
-                } else {
-                    icon = '📄';
-                }
-            }
-            // --- 🟢 修改結束 ---
+            if (!icon) icon = (item.path && item.path.match(/\.(pdf|doc|docx|ppt|pptx|xls|xlsx)$/i)) ? '📄' : '📄';
+
             let fileType = getFileType(item);
             
-            // 檢查是否已收藏
             const isFav = userFavorites.includes(item.path);
             const starClass = isFav ? 'active' : '';
 
-            div.className = "list-item file-item";
+            // 🟢 檢查是否置頂
+            const isPinned = userPinned.includes(item.path);
+            const pinClass = isPinned ? 'active' : '';
+            const pinnedItemClass = isPinned ? 'is-pinned' : '';
+
+            div.className = `list-item file-item ${pinnedItemClass}`;
             
-            // 注意：這裡加入了 star-icon 的 span
+            // 🟢 加入圖釘與星星
             div.innerHTML = `
-                <span class="star-icon ${starClass}" onclick="toggleFavorite(event, '${item.path}')">★</span>
+                <div class="action-icons">
+                    <span class="icon-btn star-icon ${starClass}" onclick="toggleFavorite(event, '${item.path}')">★</span>
+                    <span class="icon-btn pin-icon ${pinClass}" onclick="togglePin(event, '${item.path}')">📌</span>
+                </div>
                 <div class="item-icon" data-type="${fileType}">${icon}</div>
                 <div class="item-info">
                     <div class="item-name">${displayName}</div>
                     <div class="item-note">${item.note || ''}</div>
                 </div>`;
             
-            // 點擊項目打開檔案 (避免點到星星時也觸發)
             div.onclick = (e) => {
-                if(!e.target.classList.contains('star-icon')) {
+                if(!e.target.classList.contains('icon-btn')) {
                     window.open(item.path, '_blank');
                 }
             };
             container.appendChild(div);
         }
 
-        // 🟢 新增：彈窗顯示函式 (Modal) - 支援動態內容
         function showModal(title, desc, type) {
             const overlay = document.getElementById('custom-modal-overlay');
             const box = overlay.querySelector('.modal-box');
@@ -727,7 +721,6 @@
             if (type === 'success') { iconClass = 'icon-green'; iconText = '✅'; }
             else if (type === 'error') { iconClass = 'icon-red'; iconText = '🗑️'; }
 
-            // 填入單一按鈕的 HTML
             box.innerHTML = `
                 <div class="modal-icon-wrapper ${iconClass}">${iconText}</div>
                 <div class="modal-title">${title}</div>
@@ -745,63 +738,67 @@
             setTimeout(() => { overlay.style.display = 'none'; }, 300);
         }
 
-        // 🟢 我的最愛相關功能
         // 1. 切換收藏狀態
         function toggleFavorite(e, path) {
-            e.stopPropagation(); // 阻止冒泡，避免打開檔案
+            e.stopPropagation();
             const uid = auth.currentUser.uid;
             
             if (userFavorites.includes(path)) {
-                // 移除
                 userFavorites = userFavorites.filter(p => p !== path);
-                showModal("已移除", "此項目已從您的最愛清單中移除。", "error"); // 🟢 跳出移除視窗
+                showModal("已移除", "此項目已從您的最愛清單中移除。", "error");
             } else {
-                // 加入
                 userFavorites.push(path);
-                showModal("成功加入", "已成功將此項目加入您的最愛清單 ⭐", "success"); // 🟢 跳出成功視窗
+                showModal("成功加入", "已成功將此項目加入您的最愛清單 ⭐", "success");
             }
 
-            // 更新 UI (避免整頁重整，只切換 class)
-            if (e.target.classList.contains('active')) {
-                e.target.classList.remove('active');
-            } else {
-                e.target.classList.add('active');
-            }
+            if (e.target.classList.contains('active')) e.target.classList.remove('active');
+            else e.target.classList.add('active');
 
-            // 如果目前正在看「我的最愛」，移除後應該要消失
-            if (isViewFavoritesMode) {
-                refreshCurrentView();
-            }
+            if (isViewFavoritesMode) refreshCurrentView();
 
-            // 寫入 Firestore
-            db.collection("users").doc(uid).update({
-                favorites: userFavorites
-            }).catch(err => {
-                console.error("更新最愛失敗", err);
-                // 如果第一次沒有 favorites 欄位，用 set merge
-                db.collection("users").doc(uid).set({ favorites: userFavorites }, { merge: true });
-            });
+            db.collection("users").doc(uid).update({ favorites: userFavorites })
+              .catch(err => { db.collection("users").doc(uid).set({ favorites: userFavorites }, { merge: true }); });
         }
 
-        // 2. 進入「我的最愛」模式
+        // 🟢 新增：切換置頂狀態
+        function togglePin(e, path) {
+            e.stopPropagation();
+            const uid = auth.currentUser.uid;
+            
+            if (userPinned.includes(path)) {
+                // 取消置頂
+                userPinned = userPinned.filter(p => p !== path);
+                showModal("取消置頂", "此項目已恢復一般排序。", "error");
+            } else {
+                // 加入置頂
+                userPinned.push(path);
+                showModal("已置頂", "此項目將會固定在列表最上方 📌", "success");
+            }
+
+            // 即時更新畫面
+            refreshCurrentView();
+
+            // 寫入資料庫
+            db.collection("users").doc(uid).update({ pinned: userPinned })
+              .catch(err => { db.collection("users").doc(uid).set({ pinned: userPinned }, { merge: true }); });
+        }
+
         function toggleFavoritesView() {
             isViewFavoritesMode = true;
-            document.getElementById('searchInput').value = ''; // 清空搜尋
-            document.querySelector('.nav-bar').classList.remove('hidden'); // 確保導航列顯示
+            document.getElementById('searchInput').value = ''; 
+            document.querySelector('.nav-bar').classList.remove('hidden'); 
             refreshCurrentView();
         }
 
-        // 3. 退出「我的最愛」模式 (回到首頁)
         function exitFavoritesView() {
             isViewFavoritesMode = false;
-            pathStack = []; // 回到根目錄
-            document.getElementById("backBtn").onclick = goUp; // 恢復原本的返回功能
+            pathStack = []; 
+            document.getElementById("backBtn").onclick = goUp; 
             refreshCurrentView();
         }
 
-        // --- 導航功能 ---
         function enterFolder(folderItem) { 
-            isViewFavoritesMode = false; // 進入資料夾就離開最愛模式
+            isViewFavoritesMode = false; 
             pathStack.push(folderItem); 
             refreshCurrentView(); 
         }
@@ -825,7 +822,6 @@
 
         function updateBreadcrumb() {
             const backBtn = document.getElementById("backBtn");
-            // 只有在根目錄且不是最愛模式時隱藏返回鍵
             if (pathStack.length > 0) {
                 backBtn.classList.remove("hidden");
                 backBtn.onclick = goUp; 
