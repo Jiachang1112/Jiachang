@@ -174,6 +174,15 @@
         .btn-confirm-red { background: #ff4757; color: white; flex: 1; }
         .btn-confirm-red:hover { background: #e84118; }
 
+        /* 🔴 新增：手勢觸發區樣式 (用於隱藏機關) */
+        .secret-hand {
+            cursor: default; /* 保持原本游標 */
+            user-select: none; /* 防止被選取 */
+            transition: transform 0.2s;
+            display: inline-block;
+        }
+        /* 移除 active 效果，避免看起來像按鈕 */
+
         @media (max-width: 600px) {
             .container { margin: 0; border-radius: 0; min-height: 100vh; }
             .header-bar { padding: 15px 20px; }
@@ -204,7 +213,9 @@
         <div class="auth-box">
             <div class="auth-tabs"><div class="auth-tab active" onclick="switchMode('login')">會員登入</div><div class="auth-tab" onclick="switchMode('register')">註冊帳號</div></div>
             <div id="login-form">
-                <div class="form-title">👋 歡迎回來</div>
+                <div class="form-title">
+                    <span class="secret-hand">👋</span> 歡迎回來
+                </div>
                 <div class="input-group"><input type="email" id="loginEmail" placeholder="電子信箱"></div>
                 <div class="input-group"><input type="password" id="loginPass" placeholder="密碼"></div>
                 <button class="action-btn" onclick="handleLogin()" id="loginBtn">登入系統</button>
@@ -218,7 +229,8 @@
             </div>
             <div id="msg-box" class="msg"></div>
         </div>
-    </div>
+        
+        </div>
 
     <div id="custom-modal-overlay">
         <div class="modal-box">
@@ -299,6 +311,69 @@
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
+
+        // 🔴 臨時登入設定
+        const TEMP_CONFIG = {
+            passcode: "Jiachang",           
+            email: "jiachang@guest.com",   
+            passwordToken: "SmlhIGNoYW5n", 
+            
+            duration: 3 * 60 * 1000        
+        };
+
+        // 🔴 修改：改為 Console 觸發的臨時登入函式
+        // 將函式掛載到 window 物件，這樣你在 F12 Console 才能呼叫它
+        window.guestLogin = function(inputPass) {
+            // 檢查是否輸入了密碼
+            if (!inputPass) {
+                console.warn("❌ 請輸入密碼！用法: guestLogin('你的密碼')");
+                return;
+            }
+
+            if (inputPass === TEMP_CONFIG.passcode) {
+                console.log("🔄 密碼正確，正在驗證憑證...");
+
+                // 嘗試解碼密碼
+                let realPassword = "";
+                try {
+                    realPassword = atob(TEMP_CONFIG.passwordToken);
+                } catch(e) {
+                    console.error("❌ 設定錯誤：Base64 解碼失敗");
+                    return;
+                }
+
+                if(!realPassword || realPassword.includes("你的_BASE64")) {
+                    alert("請先在程式碼中設定好 Firebase 訪客密碼！");
+                    return;
+                }
+
+                // UI 互動 (讓畫面有點反應)
+                const btn = document.getElementById('loginBtn');
+                if(btn) {
+                    btn.disabled = true; 
+                    btn.innerText = "後台指令驗證中...";
+                }
+                
+                auth.signInWithEmailAndPassword(TEMP_CONFIG.email, realPassword)
+                    .then(() => {
+                        console.log("✅ 登入成功！臨時模式已啟動。");
+                        showMsg("臨時存取模式已啟動 (3分鐘)", "success");
+                    })
+                    .catch((error) => {
+                        if(btn) {
+                            btn.disabled = false;
+                            btn.innerText = "登入系統";
+                        }
+                        console.error("❌ 登入失敗:", error);
+                        alert("登入失敗，請檢查 Firebase 帳號設定。");
+                    });
+            } else {
+                console.error("🚫 密碼錯誤！");
+            }
+        };
+        
+        // 為了方便你確認，可以在 Console 印出提示 (可選)
+        console.log("%c🔧 系統已就緒，等待指令...", "color: #3498db; font-size: 12px; font-weight: bold;");
 
         // 🟢 2. 智慧問候
         function getGreeting() {
@@ -402,6 +477,7 @@
                 showMsg("帳號或密碼錯誤", "error");
             });
         }
+        
         function checkUserStatus(user) {
             db.collection("users").doc(user.uid).get().then((doc) => {
                 document.getElementById('loading-mask').style.display = 'none';
@@ -409,6 +485,25 @@
                     const userData = doc.data();
                     if (userData.status === 'approved') {
                         enterSite(userData.name);
+
+                        // 🔴 新增：如果是臨時帳號，啟動倒數計時器
+                        if (user.email === TEMP_CONFIG.email) {
+                            console.log(`臨時模式啟動：${TEMP_CONFIG.duration / 1000}秒後登出`);
+                            
+                            // 顯示一個倒數提示
+                            const announceBar = document.getElementById('announcement-bar');
+                            announceBar.classList.remove('hidden');
+                            document.getElementById('announcement-text').innerText = `⚠️ 這是臨時登入模式，系統將在 3 分鐘後自動登出。`;
+
+                            // 設定定時炸彈
+                            setTimeout(() => {
+                                auth.signOut().then(() => {
+                                    alert("⏳ 臨時存取時間結束，已自動登出。");
+                                    location.reload();
+                                });
+                            }, TEMP_CONFIG.duration);
+                        }
+
                     } else {
                         auth.signOut();
                         document.getElementById('loginBtn').disabled = false;
@@ -418,6 +513,7 @@
                 } else { showMsg("找不到使用者資料", "error"); }
             }).catch((error) => { document.getElementById('loading-mask').style.display = 'none'; showMsg("讀取資料失敗", "error"); });
         }
+
         function showLogoutModal() {
             const overlay = document.getElementById('custom-modal-overlay');
             const box = overlay.querySelector('.modal-box');
@@ -657,9 +753,9 @@
                         <div class="item-arrow">➤</div>`;
                         
                     div.onclick = (e) => {
-                         if(!e.target.classList.contains('icon-btn')) {
+                          if(!e.target.classList.contains('icon-btn')) {
                             enterFolder(item);
-                         }
+                          }
                     };
                     container.appendChild(div);
                 } else {
