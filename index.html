@@ -83,7 +83,7 @@
         .item-arrow { color: var(--border); font-size: 14px; opacity: 0.5; }
         .folder-item:hover .item-arrow { opacity: 1; color: var(--accent); transform: translateX(3px); transition: 0.2s; }
 
-        /* --- 🟢 新增：工具列與我的最愛樣式 --- */
+        /* 工具列與我的最愛樣式 */
         .toolbar {
             padding: 10px 30px;
             border-bottom: 1px solid var(--border);
@@ -93,7 +93,6 @@
             gap: 15px;
             flex-wrap: wrap;
         }
-
         .tool-select {
             padding: 8px 12px;
             border-radius: 8px;
@@ -104,9 +103,8 @@
             cursor: pointer;
             outline: none;
         }
-
         .fav-btn-view {
-            margin-left: auto; /* 推到右邊 */
+            margin-left: auto; 
             background: #f1c40f;
             color: #fff;
             border: none;
@@ -134,6 +132,23 @@
         .star-icon:hover { transform: scale(1.2); }
         .star-icon.active { color: #f1c40f; /* 啟用變金色 */ }
         
+        /* --- 🟢 Modal 彈窗樣式 (仿照你提供的圖片風格) --- */
+        #custom-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(4px); z-index: 2000; display: none; justify-content: center; align-items: center; padding: 20px; opacity: 0; transition: opacity 0.3s; }
+        #custom-modal-overlay.show { opacity: 1; }
+        .modal-box { background: white; width: 100%; max-width: 320px; padding: 30px; border-radius: 24px; box-shadow: 0 15px 40px rgba(0,0,0,0.2); text-align: center; transform: scale(0.9); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        #custom-modal-overlay.show .modal-box { transform: scale(1); }
+        
+        .modal-icon-wrapper { width: 70px; height: 70px; margin: 0 auto 20px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 32px; }
+        .icon-blue { background: #e3f2fd; color: #2196f3; }
+        .icon-green { background: #e8f5e9; color: #4caf50; } /* 成功綠色 */
+        .icon-red { background: #ffebee; color: #f44336; } /* 警告紅色 */
+        
+        .modal-title { font-size: 20px; font-weight: 800; color: #2c3e50; margin-bottom: 10px; }
+        .modal-desc { font-size: 15px; color: #7f8c8d; margin-bottom: 25px; line-height: 1.5; }
+        
+        .modal-btn { width: 100%; padding: 12px; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 16px; background: #2c3e50; color: white; transition: 0.2s; }
+        .modal-btn:hover { background: #34495e; transform: translateY(-2px); }
+
         @media (max-width: 600px) {
             .container { margin: 0; border-radius: 0; min-height: 100vh; }
             .header-bar { padding: 15px 20px; }
@@ -177,6 +192,15 @@
                 <button class="action-btn" onclick="handleRegister()" id="regBtn" style="background-color:#27ae60;">提交註冊申請</button>
             </div>
             <div id="msg-box" class="msg"></div>
+        </div>
+    </div>
+
+    <div id="custom-modal-overlay">
+        <div class="modal-box">
+            <div id="modal-icon" class="modal-icon-wrapper icon-green">✅</div>
+            <div id="modal-title" class="modal-title">成功加入</div>
+            <div id="modal-desc" class="modal-desc">已成功將此項目加入您的最愛清單。</div>
+            <button class="modal-btn" onclick="closeModal()">好，我知道了</button>
         </div>
     </div>
 
@@ -672,8 +696,40 @@
             container.appendChild(div);
         }
 
+        // 🟢 新增：彈窗顯示函式 (Modal)
+        function showModal(title, desc, type) {
+            const overlay = document.getElementById('custom-modal-overlay');
+            const iconEl = document.getElementById('modal-icon');
+            
+            // 設定標題與文字
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-desc').innerText = desc;
+            
+            // 設定圖示顏色
+            iconEl.className = 'modal-icon-wrapper'; // reset class
+            if (type === 'success') {
+                iconEl.innerText = '✅';
+                iconEl.classList.add('icon-green');
+            } else if (type === 'error') {
+                iconEl.innerText = '🗑️';
+                iconEl.classList.add('icon-red');
+            } else {
+                iconEl.innerText = 'ℹ️';
+                iconEl.classList.add('icon-blue');
+            }
+
+            // 顯示彈窗
+            overlay.style.display = 'flex';
+            setTimeout(() => { overlay.classList.add('show'); }, 10);
+        }
+
+        function closeModal() {
+            const overlay = document.getElementById('custom-modal-overlay');
+            overlay.classList.remove('show');
+            setTimeout(() => { overlay.style.display = 'none'; }, 300);
+        }
+
         // 🟢 我的最愛相關功能
-        
         // 1. 切換收藏狀態
         function toggleFavorite(e, path) {
             e.stopPropagation(); // 阻止冒泡，避免打開檔案
@@ -682,9 +738,11 @@
             if (userFavorites.includes(path)) {
                 // 移除
                 userFavorites = userFavorites.filter(p => p !== path);
+                showModal("已移除", "此項目已從您的最愛清單中移除。", "error"); // 🟢 跳出移除視窗
             } else {
                 // 加入
                 userFavorites.push(path);
+                showModal("成功加入", "已成功將此項目加入您的最愛清單 ⭐", "success"); // 🟢 跳出成功視窗
             }
 
             // 更新 UI (避免整頁重整，只切換 class)
