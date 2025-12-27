@@ -174,7 +174,6 @@
         .btn-confirm-red { background: #ff4757; color: white; flex: 1; }
         .btn-confirm-red:hover { background: #e84118; }
 
-        /* 🔴 手勢樣式：恢復成普通文字樣式 (因為我們改用 Console 觸發了) */
         .secret-hand {
             cursor: default; 
             user-select: none;
@@ -227,8 +226,7 @@
             </div>
             <div id="msg-box" class="msg"></div>
         </div>
-        
-        </div>
+    </div>
 
     <div id="custom-modal-overlay">
         <div class="modal-box">
@@ -319,11 +317,16 @@
             duration: 3 * 60 * 1000        
         };
 
-        // 🔴 修改：在 Console 輸入 guest() 觸發
-        window.guest = function() {
-            // 直接跳出輸入框問密碼
-            const inputPass = prompt("🔐 請輸入臨時通關密碼：");
-            
+        // 🔴 修改：支援 guest() 跳窗 或 guest('密碼') 直接登入
+        window.guest = function(passwordArg) {
+            let inputPass = passwordArg;
+
+            // 1. 如果指令沒有帶密碼，就跳出視窗問
+            if (!inputPass) {
+                inputPass = prompt("🔐 請輸入臨時通關密碼：");
+            }
+
+            // 2. 如果使用者按取消，則終止
             if (!inputPass) {
                 console.log("已取消登入。");
                 return;
@@ -368,11 +371,11 @@
                     });
             } else {
                 console.error("🚫 密碼錯誤！");
-                alert("密碼錯誤！");
+                // 只有在使用 prompt 模式時才跳 alert，避免一直干擾 Console 使用者
+                if (!passwordArg) alert("密碼錯誤！");
             }
         };
         
-        // 提示訊息
         console.log("%c🔧 系統已就緒。如需訪客登入，請輸入 guest() 並按 Enter。", "color: #3498db; font-size: 12px; font-weight: bold;");
 
         // 🟢 2. 智慧問候
