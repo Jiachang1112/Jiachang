@@ -157,6 +157,8 @@
         #custom-modal-overlay.show .modal-box { transform: scale(1); }
         
         .modal-icon-wrapper { width: 70px; height: 70px; margin: 0 auto 20px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 32px; }
+        padding-bottom: 6px;    /* 把圖案往上推 (數字越大越上面) */
+            box-sizing: border-box; /* 確保圓圈維持 70px 大小不變 */
         .icon-blue { background: #e3f2fd; color: #2196f3; }
         .icon-green { background: #e8f5e9; color: #4caf50; } 
         .icon-red { background: #ffebee; color: #f44336; } 
