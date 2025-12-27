@@ -132,7 +132,7 @@
         .star-icon:hover { transform: scale(1.2); }
         .star-icon.active { color: #f1c40f; /* 啟用變金色 */ }
         
-        /* --- 🟢 Modal 彈窗樣式 (仿照你提供的圖片風格) --- */
+        /* --- 🟢 Modal 彈窗樣式 (通用) --- */
         #custom-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(4px); z-index: 2000; display: none; justify-content: center; align-items: center; padding: 20px; opacity: 0; transition: opacity 0.3s; }
         #custom-modal-overlay.show { opacity: 1; }
         .modal-box { background: white; width: 100%; max-width: 320px; padding: 30px; border-radius: 24px; box-shadow: 0 15px 40px rgba(0,0,0,0.2); text-align: center; transform: scale(0.9); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
@@ -141,13 +141,21 @@
         .modal-icon-wrapper { width: 70px; height: 70px; margin: 0 auto 20px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 32px; }
         .icon-blue { background: #e3f2fd; color: #2196f3; }
         .icon-green { background: #e8f5e9; color: #4caf50; } /* 成功綠色 */
-        .icon-red { background: #ffebee; color: #f44336; } /* 警告紅色 */
+        .icon-red { background: #ffebee; color: #f44336; } /* 錯誤紅色 */
+        .icon-warning { background: #ffebee; color: #f44336; font-size: 36px; } /* 登出警告 */
         
         .modal-title { font-size: 20px; font-weight: 800; color: #2c3e50; margin-bottom: 10px; }
         .modal-desc { font-size: 15px; color: #7f8c8d; margin-bottom: 25px; line-height: 1.5; }
         
         .modal-btn { width: 100%; padding: 12px; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 16px; background: #2c3e50; color: white; transition: 0.2s; }
         .modal-btn:hover { background: #34495e; transform: translateY(-2px); }
+
+        /* --- 🟢 登出確認按鈕群組 --- */
+        .modal-btn-group { display: flex; gap: 10px; }
+        .btn-cancel { background: #f1f2f6; color: #7f8c8d; flex: 1; }
+        .btn-cancel:hover { background: #e2e6ea; }
+        .btn-confirm-red { background: #ff4757; color: white; flex: 1; }
+        .btn-confirm-red:hover { background: #e84118; }
 
         @media (max-width: 600px) {
             .container { margin: 0; border-radius: 0; min-height: 100vh; }
@@ -197,11 +205,7 @@
 
     <div id="custom-modal-overlay">
         <div class="modal-box">
-            <div id="modal-icon" class="modal-icon-wrapper icon-green">✅</div>
-            <div id="modal-title" class="modal-title">成功加入</div>
-            <div id="modal-desc" class="modal-desc">已成功將此項目加入您的最愛清單。</div>
-            <button class="modal-btn" onclick="closeModal()">好，我知道了</button>
-        </div>
+            </div>
     </div>
 
     <div id="content" class="hidden">
@@ -218,7 +222,7 @@
                         <input type="text" id="searchInput" placeholder="搜尋關鍵字..." onkeyup="handleSearch()">
                     </div>
                     <div class="theme-toggle" onclick="toggleTheme()"><span id="theme-icon">🌙</span></div>
-                    <div class="user-profile"><span class="user-name" id="user-display">User</span><div class="logout-btn" onclick="logout()">登出</div></div>
+                    <div class="user-profile"><span class="user-name" id="user-display">User</span><div class="logout-btn" onclick="showLogoutModal()">登出</div></div>
                 </div>
             </div>
 
@@ -397,10 +401,26 @@
                 } else { showMsg("找不到使用者資料", "error"); }
             }).catch((error) => { document.getElementById('loading-mask').style.display = 'none'; showMsg("讀取資料失敗", "error"); });
         }
-        function logout() {
-            if(confirm("確定要登出嗎？")) {
-                auth.signOut().then(() => location.reload());
-            }
+        function showLogoutModal() {
+            const overlay = document.getElementById('custom-modal-overlay');
+            const box = overlay.querySelector('.modal-box');
+
+            // 🟢 填入登出專用的 HTML 結構
+            box.innerHTML = `
+                <div class="modal-icon-wrapper icon-warning">⚠️</div>
+                <div class="modal-title">確認操作</div>
+                <div class="modal-desc">您確定要登出目前的帳號嗎？</div>
+                <div class="modal-btn-group">
+                    <button class="modal-btn btn-cancel" onclick="closeModal()">取消</button>
+                    <button class="modal-btn btn-confirm-red" onclick="performLogout()">確定</button>
+                </div>
+            `;
+            overlay.style.display = 'flex';
+            setTimeout(() => { overlay.classList.add('show'); }, 10);
+        }
+
+        function performLogout() {
+            auth.signOut().then(() => location.reload());
         }
 
         // --- 🟢 核心：從雲端讀取檔案結構 (包含最愛與篩選邏輯) ---
@@ -696,29 +716,25 @@
             container.appendChild(div);
         }
 
-        // 🟢 新增：彈窗顯示函式 (Modal)
+        // 🟢 新增：彈窗顯示函式 (Modal) - 支援動態內容
         function showModal(title, desc, type) {
             const overlay = document.getElementById('custom-modal-overlay');
-            const iconEl = document.getElementById('modal-icon');
+            const box = overlay.querySelector('.modal-box');
             
-            // 設定標題與文字
-            document.getElementById('modal-title').innerText = title;
-            document.getElementById('modal-desc').innerText = desc;
-            
-            // 設定圖示顏色
-            iconEl.className = 'modal-icon-wrapper'; // reset class
-            if (type === 'success') {
-                iconEl.innerText = '✅';
-                iconEl.classList.add('icon-green');
-            } else if (type === 'error') {
-                iconEl.innerText = '🗑️';
-                iconEl.classList.add('icon-red');
-            } else {
-                iconEl.innerText = 'ℹ️';
-                iconEl.classList.add('icon-blue');
-            }
+            let iconClass = 'icon-blue';
+            let iconText = 'ℹ️';
 
-            // 顯示彈窗
+            if (type === 'success') { iconClass = 'icon-green'; iconText = '✅'; }
+            else if (type === 'error') { iconClass = 'icon-red'; iconText = '🗑️'; }
+
+            // 填入單一按鈕的 HTML
+            box.innerHTML = `
+                <div class="modal-icon-wrapper ${iconClass}">${iconText}</div>
+                <div class="modal-title">${title}</div>
+                <div class="modal-desc">${desc}</div>
+                <button class="modal-btn" onclick="closeModal()">好，我知道了</button>
+            `;
+            
             overlay.style.display = 'flex';
             setTimeout(() => { overlay.classList.add('show'); }, 10);
         }
@@ -831,3 +847,4 @@
     </script>
 </body>
 </html>
+```順帶一提，如果要取得所有應用程式的完整功能，請開啟 Gemini 系列應用程式活動記錄。
