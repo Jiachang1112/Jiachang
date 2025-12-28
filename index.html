@@ -1089,13 +1089,31 @@
             }
         }
 
-        // 輔助：顯示詳細資料視窗
+        // 輔助：顯示詳細資料視窗 (真實資料版)
         function showFileDetails(item) {
-            // 如果資料庫沒有真實數據，我們用假數據模擬展示效果
-            const size = item.size || (Math.floor(Math.random() * 5000) + 100) + ' KB';
-            const date = item.createdAt ? new Date(item.createdAt.seconds * 1000).toLocaleDateString() : new Date().toLocaleDateString();
+            // 1. 處理檔案大小 (Size)
+            // 如果資料庫有 item.size 就顯示，沒有則顯示 "未知大小"
+            const size = item.size ? item.size : '<span style="color:var(--text-sub); opacity: 0.7;">未知</span>';
+
+            // 2. 處理建立日期 (Date)
+            let date = '<span style="color:var(--text-sub); opacity: 0.7;">未知</span>';
+            
+            if (item.createdAt) {
+                // 情況 A: 如果是 Firebase 的 Timestamp 格式 (有 seconds 屬性)
+                if (item.createdAt.seconds) {
+                    const d = new Date(item.createdAt.seconds * 1000);
+                    // 格式：YYYY/MM/DD
+                    date = d.getFullYear() + '/' + (d.getMonth() + 1).toString().padStart(2, '0') + '/' + d.getDate().toString().padStart(2, '0');
+                } 
+                // 情況 B: 如果你手動輸入的是純文字字串 (例如 "2023-10-25")
+                else {
+                    date = item.createdAt;
+                }
+            }
+
             const typeMap = { 'folder': '資料夾', 'file': '檔案' };
             
+            // 建立 HTML 內容
             const html = `
                 <div style="padding: 0 10px;">
                     <div class="detail-row"><span class="detail-label">名稱</span> <span class="detail-value">${item.name}</span></div>
@@ -1103,10 +1121,10 @@
                     <div class="detail-row"><span class="detail-label">大小</span> <span class="detail-value">${size}</span></div>
                     <div class="detail-row"><span class="detail-label">建立日期</span> <span class="detail-value">${date}</span></div>
                     <div class="detail-row"><span class="detail-label">路徑</span> <div class="detail-value" style="word-break:break-all; font-size:12px;">${item.path}</div></div>
+                    ${item.note ? `<div class="detail-row"><span class="detail-label">備註</span> <span class="detail-value">${item.note}</span></div>` : ''}
                 </div>
             `;
             
-            // 重用原本的 showModal，但這裡我們把 type 設為空字串來顯示純資訊
             showModal("詳細資訊", html, ""); 
         }
     </script>
