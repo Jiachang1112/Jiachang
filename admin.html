@@ -12,18 +12,16 @@
         
         h1 { margin-top: 0; color: #2c3e50; font-size: 22px; border-bottom: 2px solid #eee; padding-bottom: 15px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
         
-        /* 標題連結樣式 (仿照 YT 行為) */
+        /* 標題連結樣式 */
         .title-link {
-            text-decoration: none; /* 去除底線 */
-            color: inherit; /* 跟隨原本文字顏色 */
+            text-decoration: none;
+            color: inherit;
             cursor: pointer;
             display: flex;
             align-items: center;
             transition: opacity 0.2s;
         }
-        .title-link:hover {
-            opacity: 0.8; /* 滑鼠移過去稍微變透明 */
-        }
+        .title-link:hover { opacity: 0.8; }
 
         /* Tabs */
         .tabs { display: flex; margin-bottom: 20px; background: #f0f2f5; padding: 5px; border-radius: 8px; gap: 5px; overflow-x: auto; }
@@ -109,7 +107,7 @@
         .btn-suspend { background: #e74c3c; }
 
         /* 右鍵選單 */
-        #ctx-menu { position: fixed; background: white; border: 1px solid #ddd; box-shadow: 0 5px 15px rgba(0,0,0,0.2); border-radius: 8px; padding: 5px 0; z-index: 1000; display: none; width: 180px; }
+        #ctx-menu { position: fixed; background: white; border: 1px solid #ddd; box-shadow: 0 5px 15px rgba(0,0,0,0.2); border-radius: 8px; padding: 5px 0; z-index: 1000; display: none; width: 220px; }
         .ctx-item { padding: 12px 15px; cursor: pointer; font-size: 15px; color: #333; display: flex; align-items: center; }
         .ctx-item span { margin-right: 10px; width: 20px; text-align: center; }
         .ctx-item:hover { background: #f0f7ff; color: #3498db; }
@@ -223,7 +221,8 @@
                         2. <b>放入資料夾</b>：拖曳至資料夾「中間」變綠色放入。<br>
                         3. 手機版請用選單的「⬆️ 上移 / ⬇️ 下移」。<br>
                         4. 點擊 <b style="color:#2980b9">▶ 箭頭</b> 可收合/展開。<br>
-                        5. <b>操作後請務必按儲存。</b>
+                        5. 右鍵可 <b>編輯詳情 (大小/日期)</b>。<br>
+                        6. <b>操作後請務必按儲存。</b>
                     </p>
                     <div style="margin-top:auto;">
                         <div id="statusText" style="text-align:right; font-size:12px; color:#888; margin-bottom:5px;">資料已同步</div>
@@ -264,7 +263,8 @@
         <div class="ctx-item" onclick="ctxAction('moveUp')"><span>⬆️</span> 上移</div>
         <div class="ctx-item" onclick="ctxAction('moveDown')"><span>⬇️</span> 下移</div>
         <div class="ctx-divider"></div>
-        <div class="ctx-item" onclick="ctxAction('rename')"><span>✏️</span> 重新命名</div>
+        <div class="ctx-item" onclick="ctxAction('editDetails')"><span>📝</span> 編輯詳情 (含大小/日期)</div>
+        <div class="ctx-item" onclick="ctxAction('rename')"><span>✏️</span> 快速重新命名</div>
         <div class="ctx-item" onclick="ctxAction('delete')" style="color:#e74c3c;"><span>🗑️</span> 刪除</div>
     </div>
 
@@ -398,27 +398,23 @@
                     renderNodes(item.children, childBox);
                     container.appendChild(el); container.appendChild(childBox);
                 } else {
-                // --- 🟢 修改開始：加入圖示判斷邏輯 ---
-                let icon = item.icon || '📄'; // 優先使用資料庫存的圖示
-
-                // 強制檢查：如果是網址開頭，且不是 YouTube 或圖片，就顯示連結圖示
-                // 這樣可以修正舊資料顯示錯誤的問題
-                if (item.path && (item.path.startsWith('http://') || item.path.startsWith('https://'))) {
-                    const isYoutube = item.path.includes('youtu');
-                    const isImage = item.path.match(/\.(jpg|png|jpeg|gif|webp)$/i);
-                    
-                    if (!isYoutube && !isImage) {
-                        icon = '🔗';
+                    // --- 🟢 加入圖示判斷邏輯 ---
+                    let icon = item.icon || '📄'; 
+                    if (item.path && (item.path.startsWith('http://') || item.path.startsWith('https://'))) {
+                        const isYoutube = item.path.includes('youtu');
+                        const isImage = item.path.match(/\.(jpg|png|jpeg|gif|webp)$/i);
+                        
+                        if (!isYoutube && !isImage) {
+                            icon = '🔗';
+                        }
                     }
-                }
-                // --- 🟢 修改結束 ---
+                    // --- 🟢 修改結束 ---
 
-                el.className = 'node file';
-                // 注意：這裡的 <span class="node-icon"> 裡面現在是用變數 ${icon}
-                el.innerHTML = `<div class="node-content"><span class="caret hidden">▶</span><span class="node-icon">${icon}</span><span class="node-text">${item.name}</span></div> ${menuBtn}`;
-                el.oncontextmenu = (e) => { e.stopPropagation(); openMenu(e, item, items, index); };
-                container.appendChild(el);
-            }
+                    el.className = 'node file';
+                    el.innerHTML = `<div class="node-content"><span class="caret hidden">▶</span><span class="node-icon">${icon}</span><span class="node-text">${item.name}</span></div> ${menuBtn}`;
+                    el.oncontextmenu = (e) => { e.stopPropagation(); openMenu(e, item, items, index); };
+                    container.appendChild(el);
+                }
             });
         }
 
@@ -433,13 +429,116 @@
 
         function ctxAction(action) {
             document.getElementById('ctx-menu').style.display = 'none';
-            if (action === 'newFolder') showModal('input', '新增資料夾', '請輸入名稱', [{id:'folderName', placeholder:'名稱'}], 'icon-blue', '📁', (v) => { if (!v.folderName) return; const newItem = { type: 'folder', name: v.folderName, children: [], collapsed: false }; (activeItem && activeItem.type === 'folder' ? activeItem.children : activeParentArray).push(newItem); if(activeItem && activeItem.type === 'folder') activeItem.collapsed = false; finishAction(); });
-            else if (action === 'newFile') showModal('input', '新增檔案', '請輸入', [{id:'fileName', placeholder:'名稱'}, {id:'filePath', placeholder:'路徑'}], 'icon-blue', '📄', (v) => { if (!v.fileName) return; let icon = v.filePath.includes('youtu') ? "🎥" : (v.filePath.match(/\.(jpg|png|jpeg|gif)$/i) ? "🖼️" : (v.filePath.startsWith('http') ? "🔗" : "📄")); const newItem = { type: 'file', name: v.fileName, path: v.filePath, note: '', icon: icon }; (activeItem && activeItem.type === 'folder' ? activeItem.children : activeParentArray).push(newItem); if(activeItem && activeItem.type === 'folder') activeItem.collapsed = false; finishAction(); });
-            else if (action === 'rename' && activeItem) showModal('input', '重新命名', '', [{id:'newName', val:activeItem.name}], 'icon-blue', '✏️', (v) => { if(v.newName) { activeItem.name = v.newName; finishAction(); } });
+
+            // 1. 新增資料夾 (保持原樣)
+            if (action === 'newFolder') {
+                showModal('input', '新增資料夾', '請輸入名稱', [{id:'folderName', placeholder:'名稱'}], 'icon-blue', '📁', (v) => { 
+                    if (!v.folderName) return; 
+                    const newItem = { type: 'folder', name: v.folderName, children: [], collapsed: false }; 
+                    (activeItem && activeItem.type === 'folder' ? activeItem.children : activeParentArray).push(newItem); 
+                    if(activeItem && activeItem.type === 'folder') activeItem.collapsed = false; 
+                    finishAction(); 
+                });
+            }
+            
+            // 2. 新增檔案 (🟢 修改：加入檔案大小欄位，自動產生日期)
+            else if (action === 'newFile') {
+                showModal('input', '新增檔案', '請輸入詳細資訊', [
+                    {id:'fileName', placeholder:'名稱 (例如: 財報.pdf)'}, 
+                    {id:'filePath', placeholder:'連結/路徑'},
+                    {id:'fileSize', placeholder:'檔案大小 (例如: 5 MB)'} // 新增這欄
+                ], 'icon-blue', '📄', (v) => { 
+                    if (!v.fileName) return; 
+                    
+                    // 自動判斷圖示
+                    let icon = '📄';
+                    if (v.filePath.includes('youtu')) icon = "🎥";
+                    else if (v.filePath.match(/\.(jpg|png|jpeg|gif|webp)$/i)) icon = "🖼️";
+                    else if (v.filePath.startsWith('http')) icon = "🔗";
+
+                    // 自動產生今天日期 (YYYY/MM/DD)
+                    const today = new Date();
+                    const dateStr = today.getFullYear() + '/' + (today.getMonth()+1).toString().padStart(2,'0') + '/' + today.getDate().toString().padStart(2,'0');
+
+                    const newItem = { 
+                        type: 'file', 
+                        name: v.fileName, 
+                        path: v.filePath, 
+                        size: v.fileSize || '',  // 存入大小
+                        createdAt: dateStr,      // 存入日期
+                        note: '', 
+                        icon: icon 
+                    }; 
+                    
+                    (activeItem && activeItem.type === 'folder' ? activeItem.children : activeParentArray).push(newItem); 
+                    if(activeItem && activeItem.type === 'folder') activeItem.collapsed = false; 
+                    finishAction(); 
+                });
+            }
+
+            // 3. 編輯詳情 (🟢 新增功能：修改現有檔案的所有資料)
+            else if (action === 'editDetails' && activeItem) {
+                // 預設值處理
+                const currentName = activeItem.name || '';
+                const currentPath = activeItem.path || '';
+                const currentSize = activeItem.size || '';
+                
+                // 處理日期顯示
+                let currentDate = '';
+                if(activeItem.createdAt && activeItem.createdAt.seconds) {
+                     const d = new Date(activeItem.createdAt.seconds * 1000);
+                     currentDate = d.getFullYear() + '/' + (d.getMonth()+1).toString().padStart(2,'0') + '/' + d.getDate().toString().padStart(2,'0');
+                } else {
+                     currentDate = activeItem.createdAt || '';
+                }
+
+                const currentNote = activeItem.note || '';
+
+                // 判斷是資料夾還是檔案，顯示不同的輸入框
+                let inputs = [];
+                if (activeItem.type === 'folder') {
+                    inputs = [{id:'eName', val: currentName, placeholder:'資料夾名稱'}];
+                } else {
+                    inputs = [
+                        {id:'eName', val: currentName, placeholder:'檔案名稱'},
+                        {id:'ePath', val: currentPath, placeholder:'連結路徑'},
+                        {id:'eSize', val: currentSize, placeholder:'大小 (如: 1.2 MB)'},
+                        {id:'eDate', val: currentDate, placeholder:'日期 (如: 2024/01/01)'},
+                        {id:'eNote', val: currentNote, placeholder:'備註'}
+                    ];
+                }
+
+                showModal('input', '編輯詳情', '修改檔案資訊', inputs, 'icon-blue', '✏️', (v) => {
+                    if(v.eName) activeItem.name = v.eName;
+                    
+                    if (activeItem.type === 'file') {
+                        activeItem.path = v.ePath;
+                        activeItem.size = v.eSize;
+                        activeItem.createdAt = v.eDate;
+                        activeItem.note = v.eNote;
+                        
+                        // 重新判斷圖示 (如果連結改了)
+                        if (v.ePath.includes('youtu')) activeItem.icon = "🎥";
+                        else if (v.ePath.match(/\.(jpg|png|jpeg|gif|webp)$/i)) activeItem.icon = "🖼️";
+                        else if (v.ePath.startsWith('http') && !activeItem.icon) activeItem.icon = "🔗";
+                    }
+                    finishAction();
+                });
+            }
+
+            // 4. 快速重新命名
+            else if (action === 'rename' && activeItem) {
+                showModal('input', '重新命名', '', [{id:'newName', val:activeItem.name}], 'icon-blue', '✏️', (v) => { 
+                    if(v.newName) { activeItem.name = v.newName; finishAction(); } 
+                });
+            }
+            
+            // 5. 刪除與移動
             else if (action === 'delete' && activeItem) showModal('confirm', '確認刪除', `刪除「${activeItem.name}」？`, [], 'icon-red', '!', () => { activeParentArray.splice(activeIndex, 1); finishAction(); });
             else if (action === 'moveUp' && activeIndex > 0) { const temp = activeParentArray[activeIndex]; activeParentArray[activeIndex] = activeParentArray[activeIndex - 1]; activeParentArray[activeIndex - 1] = temp; finishAction(); }
             else if (action === 'moveDown' && activeIndex < activeParentArray.length - 1) { const temp = activeParentArray[activeIndex]; activeParentArray[activeIndex] = activeParentArray[activeIndex + 1]; activeParentArray[activeIndex + 1] = temp; finishAction(); }
         }
+
         function finishAction() { markDirty(); renderTree(); closeModal(); }
 
         // Modal
