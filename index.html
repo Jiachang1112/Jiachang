@@ -337,6 +337,7 @@
 
                 <select id="filterSelect" class="tool-select" onchange="refreshCurrentView()">
                     <option value="all">顯示全部類型</option>
+                    <option value="link">🔗 連結</option>
                     <option value="doc">📄 文件 (Doc/PDF)</option>
                     <option value="video">🎥 影片</option>
                     <option value="img">🖼️ 圖片</option>
@@ -702,6 +703,7 @@
                     if (filterType === 'doc') return ['doc', 'pdf', 'ppt'].includes(fileType);
                     if (filterType === 'video') return fileType === 'video';
                     if (filterType === 'img') return fileType === 'img';
+                    if (filterType === 'link') return fileType === 'link';
                     return true;
                 });
             }
@@ -736,6 +738,12 @@
         function getFileType(item) {
             if (item.icon === '🎥' || (item.path && item.path.includes('youtu'))) return 'video';
             if (item.icon === '🖼️' || (item.path && item.path.match(/\.(jpg|png|jpeg)$/i))) return 'img';
+            if (item.path && (item.path.startsWith('http://') || item.path.startsWith('https://'))) {
+        // 排除掉 PDF 或 PPT 的網址 (讓它們繼續被當作文件)
+        if (!item.path.match(/\.(pdf|doc|docx|ppt|pptx|xls|xlsx)$/i)) {
+            return 'link';
+        }
+    }
             if (item.path && item.path.match(/\.pdf$/i)) return 'pdf';
             if (item.path && item.path.match(/\.ppt(x)?$/i)) return 'ppt';
             return 'doc';
