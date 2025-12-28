@@ -71,7 +71,7 @@
         .list-item:hover { background-color: var(--folder-bg); transform: translateX(5px); }
         .list-item:last-child { border-bottom: none; }
         
-        /* 🟢 新增：置頂項目的樣式 */
+        /* 🟢 置頂項目的樣式 */
         .list-item.is-pinned { 
             background-color: rgba(52, 152, 219, 0.05); /* 淡淡的藍色背景 */
             border-left: 3px solid #3498db; /* 左邊加一條藍線 */
@@ -180,6 +180,71 @@
             display: inline-block;
         }
 
+        /* --- 🖱️ 右鍵選單樣式 --- */
+        #context-menu {
+            position: absolute;
+            background-color: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            width: 200px;
+            display: none; /* 預設隱藏 */
+            flex-direction: column;
+            z-index: 9999;
+            overflow: hidden;
+            padding: 6px;
+            animation: menuFadeIn 0.1s ease-out;
+        }
+
+        @keyframes menuFadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .ctx-item {
+            padding: 10px 12px;
+            font-size: 14px;
+            cursor: pointer;
+            color: var(--text-main);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            transition: background 0.2s;
+            font-weight: 500;
+        }
+
+        .ctx-item:hover {
+            background-color: var(--accent);
+            color: white;
+        }
+
+        .ctx-item span {
+            margin-right: 12px;
+            font-size: 16px;
+            width: 20px;
+            text-align: center;
+        }
+
+        .ctx-divider {
+            height: 1px;
+            background: var(--border);
+            margin: 6px 0;
+        }
+
+        /* 詳細資訊表格樣式 */
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+            font-size: 14px;
+            text-align: left;
+        }
+        .detail-label { color: #888; font-weight: bold; }
+        .detail-value { color: #333; font-family: monospace; }
+        [data-theme="dark"] .detail-row { border-bottom: 1px solid #333; }
+        [data-theme="dark"] .detail-value { color: #ccc; }
+
         @media (max-width: 600px) {
             .container { margin: 0; border-radius: 0; min-height: 100vh; }
             .header-bar { padding: 15px 20px; }
@@ -286,6 +351,16 @@
         </div>
     </div>
 
+    <div id="context-menu">
+        <div class="ctx-item" onclick="handleCtxAction('open')"><span>📂</span> 開啟</div>
+        <div class="ctx-item" onclick="handleCtxAction('copy')"><span>📋</span> 複製連結</div>
+        <div class="ctx-divider"></div>
+        <div class="ctx-item" onclick="handleCtxAction('fav')" id="ctx-fav-text"><span>⭐</span> 加入最愛</div>
+        <div class="ctx-item" onclick="handleCtxAction('pin')" id="ctx-pin-text"><span>📌</span> 置頂項目</div>
+        <div class="ctx-divider"></div>
+        <div class="ctx-item" onclick="handleCtxAction('info')"><span>ℹ️</span> 詳細資訊</div>
+    </div>
+
     <script src="config.js"></script>
 
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
@@ -310,8 +385,8 @@
 
         // 🔴 臨時登入設定
         const TEMP_CONFIG = {
-            passcode: "Jiachang",           
-            email: "jiachang@guest.com",   
+            passcode: "Jiachang",            
+            email: "jiachang@guest.com",    
             passwordToken: "SmlhIGNoYW5n", 
             
             duration: 3 * 60 * 1000        
@@ -741,6 +816,9 @@
                     const pinnedItemClass = isPinned ? 'is-pinned' : ''; // 用於背景色
 
                     div.className = `list-item folder-item ${pinnedItemClass}`;
+
+                    // 🟢 綁定右鍵選單事件
+                    div.oncontextmenu = (e) => showContextMenu(e, item);
                     
                     // 🟢 加入圖釘與星星
                     div.innerHTML = `
@@ -790,6 +868,9 @@
 
             div.className = `list-item file-item ${pinnedItemClass}`;
             
+            // 🟢 綁定右鍵選單事件
+            div.oncontextmenu = (e) => showContextMenu(e, item);
+
             // 🟢 加入圖釘與星星
             div.innerHTML = `
                 <div class="action-icons">
@@ -839,7 +920,8 @@
 
         // 1. 切換收藏狀態
         function toggleFavorite(e, path) {
-            e.stopPropagation();
+            // 如果 e 為 null (從右鍵選單觸發)，則不執行 stopPropagation
+            if (e) e.stopPropagation();
             const uid = auth.currentUser.uid;
             
             if (userFavorites.includes(path)) {
@@ -850,8 +932,11 @@
                 showModal("成功加入", "已成功將此項目加入您的最愛清單 ⭐", "success");
             }
 
-            if (e.target.classList.contains('active')) e.target.classList.remove('active');
-            else e.target.classList.add('active');
+            // 更新 UI 上的星星狀態
+            if (e && e.target) {
+                if (e.target.classList.contains('active')) e.target.classList.remove('active');
+                else e.target.classList.add('active');
+            }
 
             if (isViewFavoritesMode) refreshCurrentView();
 
@@ -861,7 +946,7 @@
 
         // 🟢 新增：切換置頂狀態
         function togglePin(e, path) {
-            e.stopPropagation();
+            if (e) e.stopPropagation();
             const uid = auth.currentUser.uid;
             
             if (userPinned.includes(path)) {
@@ -938,6 +1023,91 @@
                 }
             });
             document.getElementById("breadcrumb-container").innerHTML = html;
+        }
+
+        // --- 🖱️ 右鍵選單核心邏輯 ---
+        let ctxTargetItem = null; // 暫存目前被右鍵點擊的檔案物件
+        const ctxMenu = document.getElementById('context-menu');
+
+        // 1. 關閉選單的邏輯 (點擊其他地方時)
+        document.addEventListener('click', () => {
+            ctxMenu.style.display = 'none';
+        });
+
+        // 2. 顯示選單的主函數
+        function showContextMenu(e, item) {
+            e.preventDefault(); // 阻止瀏覽器原本的右鍵選單
+            ctxTargetItem = item; // 記住這個檔案
+
+            // 動態改變文字 (根據是否已收藏/置頂)
+            const isFav = userFavorites.includes(item.path);
+            const isPin = userPinned.includes(item.path);
+            
+            document.getElementById('ctx-fav-text').innerHTML = isFav ? '<span>💔</span> 移除最愛' : '<span>⭐</span> 加入最愛';
+            document.getElementById('ctx-pin-text').innerHTML = isPin ? '<span>📍</span> 取消置頂' : '<span>📌</span> 置頂項目';
+
+            // 計算位置 (防止選單超出螢幕邊緣)
+            let x = e.pageX;
+            let y = e.pageY;
+            const menuWidth = 200;
+            const menuHeight = 220;
+
+            if (x + menuWidth > window.innerWidth) x -= menuWidth;
+            if (y + menuHeight > window.innerHeight) y -= menuHeight;
+
+            ctxMenu.style.left = `${x}px`;
+            ctxMenu.style.top = `${y}px`;
+            ctxMenu.style.display = 'flex';
+        }
+
+        // 3. 處理選單點擊動作
+        function handleCtxAction(action) {
+            if (!ctxTargetItem) return;
+
+            if (action === 'open') {
+                if (ctxTargetItem.type === 'folder') {
+                    enterFolder(ctxTargetItem);
+                } else {
+                    window.open(ctxTargetItem.path, '_blank');
+                }
+            } 
+            else if (action === 'copy') {
+                navigator.clipboard.writeText(ctxTargetItem.path).then(() => {
+                    showMsg("📋 連結已複製到剪貼簿", "success");
+                }).catch(() => {
+                    showMsg("複製失敗，請手動複製", "error");
+                });
+            } 
+            else if (action === 'fav') {
+                toggleFavorite(null, ctxTargetItem.path);
+            } 
+            else if (action === 'pin') {
+                togglePin(null, ctxTargetItem.path);
+            }
+            else if (action === 'info') {
+                showFileDetails(ctxTargetItem);
+            }
+        }
+
+        // 輔助：顯示詳細資料視窗
+        function showFileDetails(item) {
+            // 如果資料庫沒有真實數據，我們用假數據模擬展示效果
+            const size = item.size || (Math.floor(Math.random() * 5000) + 100) + ' KB';
+            const date = item.createdAt ? new Date(item.createdAt.seconds * 1000).toLocaleDateString() : new Date().toLocaleDateString();
+            const typeMap = { 'folder': '資料夾', 'file': '檔案' };
+            
+            const html = `
+                <div style="padding: 0 10px;">
+                    <div class="detail-row"><span class="detail-label">名稱</span> <span class="detail-value">${item.name}</span></div>
+                    <div class="detail-row"><span class="detail-label">類型</span> <span class="detail-value">${typeMap[item.type] || '未知'}</span></div>
+                    <div class="detail-row"><span class="detail-label">大小</span> <span class="detail-value">${size}</span></div>
+                    <div class="detail-row"><span class="detail-label">建立日期</span> <span class="detail-value">${date}</span></div>
+                    <div class="detail-row"><span class="detail-label">路徑</span> <div class="detail-value" style="word-break:break-all; font-size:12px;">${item.path}</div></div>
+                </div>
+            `;
+            
+            // 重用原本的 showModal，但這裡我們把 type 設為空字串來顯示純資訊
+            showModal("詳細資訊", html, ""); 
         }
     </script>
 </body>
