@@ -387,7 +387,7 @@
         // 🔴 臨時登入設定
         const TEMP_CONFIG = {
             passcode: "Jiachang",            
-            email: "jiachang@guest.com",    
+            email: "jiachang@guest.com",     
             passwordToken: "SmlhIGNoYW5n", 
             
             duration: 3 * 60 * 1000        
@@ -645,8 +645,8 @@
         }
 
         function initSite() {
-            document.title = CONFIG.pageTitle;
-            document.getElementById("page-title").innerText = CONFIG.pageTitle;
+            document.title = CONFIG.pageTitle || "雲端資料庫";
+            document.getElementById("page-title").innerText = CONFIG.pageTitle || "雲端資料庫";
             
             db.collection('system').doc('files').onSnapshot(doc => {
                 if (doc.exists && doc.data().items) {
@@ -656,12 +656,17 @@
                     allFoldersFlat = [];
                     processFolderPaths(cloudItems);
 
-                    const isSearching = document.querySelector('.nav-bar').classList.contains('hidden');
-                    
-                    if(isSearching && !isViewFavoritesMode) {
-                        handleSearch();
+                    // --- 🟢 NEW: 支援網址路徑 (Deep Linking) ---
+                    // 如果 pathStack 為空 (第一次載入)，嘗試解析網址
+                    if (pathStack.length === 0) {
+                        restorePathFromUrl();
                     } else {
-                        refreshCurrentView();
+                        const isSearching = document.querySelector('.nav-bar').classList.contains('hidden');
+                        if(isSearching && !isViewFavoritesMode) {
+                            handleSearch();
+                        } else {
+                            refreshCurrentView();
+                        }
                     }
                 } else {
                     cloudItems = [];
@@ -989,19 +994,24 @@
             refreshCurrentView();
         }
 
+        // 🟢 修改：進入資料夾時更新網址
         function enterFolder(folderItem) { 
             isViewFavoritesMode = false; 
             pathStack.push(folderItem); 
+            updateUrl(); 
             refreshCurrentView(); 
         }
 
+        // 🟢 修改：返回上層時更新網址
         function goUp() { 
             if (pathStack.length > 0) { 
                 pathStack.pop(); 
+                updateUrl(); 
                 refreshCurrentView(); 
             } 
         }
 
+        // 🟢 修改：跳轉時更新網址
         function jumpTo(index) { 
             isViewFavoritesMode = false;
             if (index === -1) { 
@@ -1009,6 +1019,7 @@
             } else { 
                 pathStack = pathStack.slice(0, index + 1); 
             } 
+            updateUrl(); 
             refreshCurrentView(); 
         }
 
@@ -1135,6 +1146,72 @@
             
             showModal("詳細資訊", html, ""); 
         }
+
+        // ---------------------------------------------
+        // 🟢 網址路徑 (Deep Linking) 核心功能區
+        // ---------------------------------------------
+
+        // 1. 更新網址列而不重新整理
+        function updateUrl() {
+            const pathNames = pathStack.map(item => item.name);
+            const pathStr = pathNames.join('/'); // 變成 "資料夾A/資料夾B"
+            
+            // 如果路徑有變才更新，避免重複
+            const currentUrlParams = new URLSearchParams(window.location.search);
+            const currentPath = currentUrlParams.get('path') || '';
+
+            if (pathStr !== currentPath) {
+                const newUrl = pathStr ? `?path=${encodeURIComponent(pathStr)}` : window.location.pathname;
+                history.pushState({ path: pathStr }, '', newUrl);
+            }
+        }
+
+        // 2. 從網址讀取路徑並還原 pathStack
+        function restorePathFromUrl() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const pathParam = urlParams.get('path');
+            
+            if (!pathParam) {
+                pathStack = []; // 回首頁
+                refreshCurrentView();
+                return;
+            }
+
+            const folderNames = decodeURIComponent(pathParam).split('/');
+            let currentLevelItems = cloudItems; // 從最上層開始找
+            let newStack = [];
+            let isValidPath = true;
+
+            for (let name of folderNames) {
+                // 在目前層級尋找名稱相符的資料夾
+                const foundFolder = currentLevelItems.find(item => item.type === 'folder' && item.name === name);
+                
+                if (foundFolder) {
+                    newStack.push(foundFolder);
+                    // 進入下一層
+                    currentLevelItems = foundFolder.children || [];
+                } else {
+                    console.warn(`找不到資料夾: ${name}，可能已被刪除或路徑錯誤`);
+                    isValidPath = false;
+                    break; 
+                }
+            }
+
+            if (isValidPath) {
+                pathStack = newStack;
+            } else {
+                // 如果路徑錯誤，就回到根目錄
+                pathStack = []; 
+                history.replaceState(null, '', window.location.pathname); // 清除錯誤網址
+            }
+            refreshCurrentView();
+        }
+
+        // 3. 監聽瀏覽器的「上一頁/下一頁」按鈕
+        window.onpopstate = function(event) {
+            restorePathFromUrl();
+        };
+
     </script>
 </body>
 </html>
