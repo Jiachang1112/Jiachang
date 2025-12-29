@@ -1,272 +1,263 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="zh-TW" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>雲端資料庫-網站管理後台</title>
+    <title>雲端資料庫</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
-        /* --- 全域設定 --- */
-        body { font-family: 'Noto Sans TC', sans-serif; background: #f5f7fa; padding: 20px; color: #333; display: flex; justify-content: center; min-height: 100vh; box-sizing: border-box; margin: 0; }
-        .container { width: 100%; max-width: 900px; background: #fff; padding: 30px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); display: flex; flex-direction: column; }
+        /* --- 🎨 CSS 變數系統 --- */
+        :root { --bg-color: #f0f2f5; --card-bg: #ffffff; --text-main: #2c3e50; --text-sub: #666666; --border: #eeeeee; --accent: #3498db; --accent-hover: #2980b9; --shadow: 0 4px 20px rgba(0,0,0,0.05); --folder-bg: #f8f9fa; --announce-bg: #fff3cd; --announce-text: #856404; }
+        [data-theme="dark"] { --bg-color: #121212; --card-bg: #1e1e1e; --text-main: #e0e0e0; --text-sub: #a0a0a0; --border: #333333; --accent: #4fa3e0; --accent-hover: #6ab0e6; --shadow: 0 4px 20px rgba(0,0,0,0.3); --folder-bg: #2d2d2d; --announce-bg: #3e3825; --announce-text: #ffca2c; }
+        body { font-family: 'Noto Sans TC', sans-serif; background-color: var(--bg-color); margin: 0; padding: 0; color: var(--text-main); height: 100vh; transition: background 0.3s, color 0.3s; }
+        .hidden { display: none !important; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        #loading-mask { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-color); z-index: 10000; display: flex; justify-content: center; align-items: center; flex-direction: column; color: var(--accent); font-weight: bold; font-size: 18px; transition: 0.3s; }
+        .spinner { border: 4px solid var(--border); border-top: 4px solid var(--accent); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin-bottom: 15px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        #auth-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-color); z-index: 9999; display: flex; justify-content: center; align-items: center; padding: 20px; }
+        .auth-box { background: var(--card-bg); padding: 40px; border-radius: 20px; box-shadow: var(--shadow); width: 100%; max-width: 380px; transition: 0.3s; }
+        .auth-tabs { display: flex; border-bottom: 2px solid var(--border); margin-bottom: 25px; }
+        .auth-tab { flex: 1; text-align: center; padding: 12px; cursor: pointer; color: var(--text-sub); font-weight: bold; transition: 0.3s; }
+        .auth-tab.active { color: var(--accent); border-bottom: 2px solid var(--accent); margin-bottom: -2px; }
+        .form-title { text-align: center; margin-bottom: 20px; color: var(--text-main); font-size: 22px; font-weight: 700; }
+        .input-group { margin-bottom: 15px; }
+        input { width: 100%; padding: 14px; border: 2px solid var(--border); border-radius: 10px; background: var(--bg-color); color: var(--text-main); font-size: 16px; transition: 0.3s; }
+        input:focus { border-color: var(--accent); outline: none; }
+        button.action-btn { width: 100%; padding: 14px; background-color: var(--accent); color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.3s; margin-top: 10px; box-shadow: 0 4px 10px rgba(52, 152, 219, 0.2); }
+        button.action-btn:hover { background-color: var(--accent-hover); transform: translateY(-1px); }
+        button:disabled { background-color: #bdc3c7; cursor: not-allowed; transform: none; box-shadow: none; }
+        .msg { font-size: 14px; text-align: center; margin-top: 20px; min-height: 20px; }
+        .msg.error { color: #e74c3c; }
+        .msg.success { color: #27ae60; }
+        .container { max-width: 900px; margin: 20px auto; background: var(--card-bg); border-radius: 20px; box-shadow: var(--shadow); overflow: hidden; min-height: 80vh; display: flex; flex-direction: column; transition: 0.3s; }
+        .header-bar { padding: 20px 30px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px; }
         
-        h1 { margin-top: 0; color: #2c3e50; font-size: 22px; border-bottom: 2px solid #eee; padding-bottom: 15px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .brand { font-size: 22px; font-weight: 700; color: var(--text-main); display: flex; align-items: center; }
+        .brand-link { text-decoration: none; color: inherit; display: flex; align-items: center; pointer-events: none; cursor: default; }
+        .brand-link span:first-child { margin-right: 8px; }
+
+        .header-tools { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+        .search-box { position: relative; width: 200px; }
+        .search-box input { width: 100%; padding: 8px 12px 8px 35px; border-radius: 20px; border: 1px solid var(--border); font-size: 14px; height: 38px; background: var(--bg-color); }
+        .search-box svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; fill: var(--text-sub); pointer-events: none; }
+        .theme-toggle { cursor: pointer; padding: 8px; border-radius: 50%; background: var(--bg-color); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; width: 38px; height: 38px; color: var(--text-main); transition: 0.2s; }
+        .theme-toggle:hover { background: var(--border); }
+        .user-profile { display: flex; align-items: center; gap: 10px; background: var(--bg-color); padding: 5px 15px; border-radius: 20px; border: 1px solid var(--border); }
+        .user-name { font-size: 14px; color: var(--text-main); font-weight: bold; }
+        /* 🔴 修正登出按鈕樣式，確保可點擊 */
+        .logout-btn { font-size: 12px; color: #e74c3c; cursor: pointer; font-weight: bold; padding: 5px; border-radius: 4px; transition: 0.2s; }
+        .logout-btn:hover { background: rgba(231, 76, 60, 0.1); }
         
-        /* 標題連結樣式 */
-        .title-link {
-            text-decoration: none;
-            color: inherit;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            transition: opacity 0.2s;
+        #announcement-bar { background: var(--announce-bg); color: var(--announce-text); padding: 12px 30px; font-size: 14px; border-bottom: 1px solid rgba(0,0,0,0.05); display: flex; align-items: center; transition: 0.3s; }
+        #announcement-bar svg { width: 18px; height: 18px; margin-right: 8px; fill: currentColor; }
+        .nav-bar { background: var(--folder-bg); padding: 12px 30px; border-bottom: 1px solid var(--border); display: flex; align-items: center; font-size: 14px; color: var(--text-sub); }
+        .breadcrumb { display: flex; align-items: center; flex-grow: 1; overflow-x: auto; white-space: nowrap; scrollbar-width: none; }
+        .breadcrumb::-webkit-scrollbar { display: none; }
+        .breadcrumb-item { cursor: pointer; color: var(--accent); font-weight: 500; }
+        .breadcrumb-item:hover { text-decoration: underline; }
+        .breadcrumb-separator { margin: 0 8px; color: var(--text-sub); opacity: 0.5; }
+        .breadcrumb-current { color: var(--text-main); font-weight: bold; cursor: default; }
+        .back-btn { background: var(--card-bg); border: 1px solid var(--border); padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 13px; margin-right: 15px; display: flex; align-items: center; color: var(--text-main); transition: 0.2s; }
+        .back-btn:hover { background: var(--border); }
+        #list-root { padding: 10px 0; flex-grow: 1; overflow-y: auto; user-select: none; /* 防止連點反白 */ }
+        
+        .list-item { display: flex; align-items: center; padding: 18px 30px; border-bottom: 1px solid var(--border); cursor: pointer; transition: all 0.2s; position: relative; border-left: 3px solid transparent; }
+        .list-item:hover { background-color: var(--folder-bg); }
+        .list-item:last-child { border-bottom: none; }
+        
+        /* 🟢 選取狀態 (點一下變色) */
+        .list-item.selected {
+            background-color: rgba(52, 152, 219, 0.1);
+            border-left: 3px solid var(--accent);
         }
-        .title-link:hover { opacity: 0.8; }
-
-        /* Tabs */
-        .tabs { display: flex; margin-bottom: 20px; background: #f0f2f5; padding: 5px; border-radius: 8px; gap: 5px; overflow-x: auto; }
-        .tab { flex: 1; text-align: center; padding: 10px; cursor: pointer; border-radius: 6px; font-weight: bold; color: #666; transition: 0.2s; font-size: 14px; white-space: nowrap; }
-        .tab.active { background: #fff; color: #333; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        .tab.active[data-type="files"] { color: #2980b9; border-bottom: 2px solid #2980b9; }
-        .tab.active[data-type="user"] { color: #e74c3c; border-bottom: 2px solid #e74c3c; }
-        .tab.active[data-type="notify"] { color: #d35400; border-bottom: 2px solid #d35400; }
-
-        .section { display: none; animation: fadeIn 0.3s; flex-grow: 1; }
-        .section.active { display: flex; flex-direction: column; }
-        
-        /* 檔案總管 */
-        .manager-wrapper { display: flex; gap: 20px; min-height: 500px; border: 1px solid #eee; border-radius: 12px; padding: 10px; background: #fafafa; }
-        .tree-panel { flex: 2; background: white; border-radius: 8px; border: 1px solid #eee; padding: 15px; overflow-y: auto; position: relative; }
-        .tree-panel.unsaved { border-color: #f39c12; background: #fffdf5; }
-        .action-panel { flex: 1; background: white; border-radius: 8px; border: 1px solid #eee; padding: 15px; display: flex; flex-direction: column; }
-        
-        @media (max-width: 768px) {
-            .manager-wrapper { flex-direction: column; height: auto; }
-            .tree-panel { min-height: 400px; }
-            .action-panel { height: auto; }
-            body { padding: 10px; }
-            .container { padding: 15px; }
+        [data-theme="dark"] .list-item.selected {
+            background-color: rgba(52, 152, 219, 0.2);
         }
 
-        /* 樹狀節點 */
-        .node { 
-            padding: 6px 10px; margin: 4px 0; border-radius: 6px; 
-            display: flex; align-items: center; justify-content: space-between;
-            transition: background 0.2s; user-select: none; font-size: 15px; background: #fff; border: 2px solid transparent; 
-        }
-        .node:hover { background: #f0f7ff; border-color: #d6eaf8; }
-        .node.dragging { opacity: 0.5; background: #e0f7fa; border: 2px dashed #00bcd4; }
-        .node.drag-over-top { border-top: 3px solid #3498db; }
-        .node.drag-over-bottom { border-bottom: 3px solid #3498db; }
-        .node.drag-over-inside { background: #d4edda; border: 2px dashed #28a745; }
+        .list-item.is-pinned { background-color: rgba(52, 152, 219, 0.05); }
+        [data-theme="dark"] .list-item.is-pinned { background-color: rgba(52, 152, 219, 0.15); }
 
-        .node-content { display: flex; align-items: center; flex-grow: 1; overflow: hidden; cursor: grab; }
-        .node-content:active { cursor: grabbing; }
-        .node.folder .node-content { font-weight: bold; color: #2c3e50; }
-        .node.file .node-content { color: #666; }
+        .item-icon { font-size: 28px; margin-right: 20px; min-width: 40px; text-align: center; transition: 0.2s; }
+        .folder-item .item-icon { color: #f39c12; }
+        .file-item .item-icon[data-type="pdf"] { color: #e74c3c; } 
+        .file-item .item-icon[data-type="doc"] { color: #3498db; }
+        .file-item .item-icon[data-type="img"] { color: #9b59b6; }
+        .file-item .item-icon[data-type="ppt"] { color: #e67e22; }
+        .file-item .item-icon[data-type="video"] { color: #e056fd; }
+        .item-info { flex-grow: 1; }
+        .item-name { font-size: 16px; font-weight: 600; color: var(--text-main); margin-bottom: 4px; display: flex; align-items: center; }
+        .item-name .highlight { background: #ffeaa7; color: #d35400; padding: 0 2px; border-radius: 2px; }
+        .item-note { font-size: 13px; color: var(--text-sub); }
+        .item-arrow { color: var(--border); font-size: 14px; opacity: 0.5; }
+        .folder-item:hover .item-arrow { opacity: 1; color: var(--accent); transform: translateX(3px); transition: 0.2s; }
+
+        .toolbar { padding: 10px 30px; border-bottom: 1px solid var(--border); background: var(--bg-color); display: flex; align-items: center; gap: 15px; flex-wrap: wrap; }
+        .tool-select { padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--card-bg); color: var(--text-main); font-size: 14px; cursor: pointer; outline: none; }
+        .fav-btn-view { margin-left: auto; background: #f1c40f; color: #fff; border: none; padding: 8px 15px; border-radius: 20px; font-size: 13px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 5px; transition: 0.2s; }
+        .fav-btn-view:hover { background: #f39c12; transform: translateY(-2px); }
+        .action-icons { display: flex; gap: 10px; margin-right: 15px; }
+        .icon-btn { font-size: 20px; cursor: pointer; color: #bdc3c7; transition: 0.2s; user-select: none; }
+        .icon-btn:hover { transform: scale(1.2); }
+        .star-icon.active { color: #f1c40f; }
+        .pin-icon.active { color: #3498db; transform: rotate(45deg); }
         
-        .caret { display: inline-block; width: 24px; text-align: center; transition: transform 0.2s; color: #999; font-size: 12px; cursor: pointer; }
-        .caret.expanded { transform: rotate(90deg); }
-        .caret.hidden { opacity: 0; pointer-events: none; }
-
-        .node-icon { margin-right: 8px; width: 24px; text-align: center; flex-shrink: 0; }
-        .node-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        
-        .children-container { margin-left: 20px; border-left: 1px solid #eee; display: block; padding-left: 5px; }
-        .children-container.collapsed { display: none; }
-
-        .node-menu-btn { padding: 4px 8px; color: #aaa; cursor: pointer; font-weight: bold; font-size: 18px; border-radius: 4px; transition: 0.2s; flex-shrink: 0; margin-left: 10px; }
-        .node-menu-btn:hover { background: #e0e0e0; color: #333; }
-        
-        .add-root-btn { display: flex; align-items: center; justify-content: center; margin-top: 15px; padding: 12px; border: 2px dashed #ddd; border-radius: 8px; color: #888; font-weight: bold; cursor: pointer; transition: 0.2s; }
-        .add-root-btn:hover { border-color: #3498db; color: #3498db; background: #f0f8ff; }
-
-        /* 通用元件 */
-        .form-group { margin-bottom: 20px; }
-        label { display: block; margin-bottom: 8px; font-weight: bold; color: #2c3e50; }
-        textarea { width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 16px; box-sizing: border-box; height: 120px; resize: none; }
-        
-        /* 會員列表 */
-        .user-list { list-style: none; padding: 0; }
-        .user-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 1px solid #eee; background: white; }
-        .u-status { font-size: 12px; padding: 3px 10px; border-radius: 12px; margin-left: 10px; font-weight: bold; }
-        .status-pending { background: #ffeaa7; color: #d35400; }
-        .status-approved { background: #27ae60; color: white; }
-        .status-suspended { background: #e74c3c; color: white; }
-
-        .btn { width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; margin-top: 5px; font-size: 15px; }
-        .btn-save { background: #27ae60; color: white; margin-top: auto; }
-        .btn-save:hover { background: #219150; }
-        .btn-save.disabled { background: #ccc; cursor: default; }
-        .btn-post { background-color: #e67e22; color: white; }
-        .btn-clear { background-color: #95a5a6; color: white; margin-top: 10px; }
-        
-        /* 按鈕樣式 */
-        .btn-action { width: auto; padding: 6px 12px; font-size: 13px; border-radius: 6px; color: white; border: none; cursor: pointer; }
-        .btn-approve { background: #27ae60; }
-        .btn-suspend { background: #e74c3c; }
-
-        /* 右鍵選單 */
-        #ctx-menu { position: fixed; background: white; border: 1px solid #ddd; box-shadow: 0 5px 15px rgba(0,0,0,0.2); border-radius: 8px; padding: 5px 0; z-index: 1000; display: none; width: 220px; }
-        .ctx-item { padding: 12px 15px; cursor: pointer; font-size: 15px; color: #333; display: flex; align-items: center; }
-        .ctx-item span { margin-right: 10px; width: 20px; text-align: center; }
-        .ctx-item:hover { background: #f0f7ff; color: #3498db; }
-        .ctx-divider { height: 1px; background: #eee; margin: 5px 0; }
-
-        /* 登入與Modal */
-        #login-panel { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #f5f7fa; z-index: 999; display: flex; justify-content: center; align-items: center; flex-direction: column; padding: 20px; }
-        .login-box { background: white; padding: 40px; border-radius: 16px; width: 100%; max-width: 350px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
-        .login-input { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
-
+        /* --- 🟢 Modal 彈窗樣式 --- */
         #custom-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(4px); z-index: 2000; display: none; justify-content: center; align-items: center; padding: 20px; opacity: 0; transition: opacity 0.3s; }
         #custom-modal-overlay.show { opacity: 1; }
-        .modal-box { background: white; width: 100%; max-width: 400px; padding: 30px; border-radius: 16px; box-shadow: 0 15px 40px rgba(0,0,0,0.2); text-align: center; transform: scale(0.9); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .modal-box { background: white; width: 100%; max-width: 320px; padding: 30px; border-radius: 24px; box-shadow: 0 15px 40px rgba(0,0,0,0.2); text-align: center; transform: scale(0.9); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         #custom-modal-overlay.show .modal-box { transform: scale(1); }
-        .modal-icon-wrapper { width: 60px; height: 60px; margin: 0 auto 15px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 30px; }
+        
+        .modal-icon-wrapper { width: 70px; height: 70px; margin: 0 auto 20px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 32px; }
         .icon-blue { background: #e3f2fd; color: #2196f3; }
-        .icon-red { background: #ffebee; color: #f44336; }
-        .modal-title { font-size: 20px; font-weight: bold; color: #333; margin-bottom: 5px; }
-        .modal-desc { font-size: 14px; color: #666; margin-bottom: 20px; }
-        .modal-input { width: 100%; padding: 12px; margin-bottom: 10px; border: 2px solid #eee; border-radius: 8px; font-size: 16px; box-sizing: border-box; transition: 0.2s; }
-        .modal-input:focus { border-color: #3498db; outline: none; }
-        .modal-btn-group { display: flex; gap: 10px; margin-top: 10px; }
-        .modal-btn { flex: 1; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 15px; }
-        .btn-cancel { background: #f1f2f6; color: #7f8c8d; }
-        .btn-confirm { background: #3498db; color: white; }
-        .btn-confirm.danger { background: #e74c3c; }
+        .icon-green { background: #e8f5e9; color: #4caf50; } 
+        .icon-red { background: #ffebee; color: #f44336; } 
+        /* 🔴 刪除確認的紅色驚嘆號樣式 */
+        .icon-delete { background: #ffebee; color: #e74c3c; font-size: 30px; font-weight: bold; }
 
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .modal-title { font-size: 20px; font-weight: 800; color: #2c3e50; margin-bottom: 10px; }
+        .modal-desc { font-size: 15px; color: #7f8c8d; margin-bottom: 25px; line-height: 1.5; }
+        
+        .modal-btn { width: 100%; padding: 12px; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 16px; background: #2c3e50; color: white; transition: 0.2s; }
+        .modal-btn:hover { background: #34495e; transform: translateY(-2px); }
 
-        /* --- 電腦版專用設定 --- */
+        .modal-btn-group { display: flex; gap: 10px; }
+        .btn-cancel { background: #f1f2f6; color: #7f8c8d; flex: 1; }
+        .btn-cancel:hover { background: #e2e6ea; }
+        /* 🔴 紅色確定刪除按鈕 */
+        .btn-confirm-delete { background: #e74c3c; color: white; flex: 1; }
+        .btn-confirm-delete:hover { background: #c0392b; }
+
+        .secret-hand { cursor: default; user-select: none; display: inline-block; }
+
+        #context-menu { position: absolute; background-color: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); width: 200px; display: none; flex-direction: column; z-index: 9999; overflow: hidden; padding: 6px; animation: menuFadeIn 0.1s ease-out; }
+        @keyframes menuFadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        .ctx-item { padding: 10px 12px; font-size: 14px; cursor: pointer; color: var(--text-main); border-radius: 6px; display: flex; align-items: center; transition: background 0.2s; font-weight: 500; }
+        .ctx-item:hover { background-color: var(--accent); color: white; }
+        .ctx-item span { margin-right: 12px; font-size: 16px; width: 20px; text-align: center; }
+        .ctx-divider { height: 1px; background: var(--border); margin: 6px 0; }
+        /* 🔴 右鍵選單的刪除選項 */
+        .ctx-item.delete { color: #e74c3c; }
+        .ctx-item.delete:hover { background: #ffebee; color: #c0392b; }
+
+        .detail-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee; font-size: 14px; text-align: left; }
+        .detail-label { color: #888; font-weight: bold; }
+        .detail-value { color: #333; font-family: monospace; }
+        [data-theme="dark"] .detail-row { border-bottom: 1px solid #333; }
+        [data-theme="dark"] .detail-value { color: #ccc; }
+
+        @media (max-width: 600px) {
+            .container { margin: 0; border-radius: 0; min-height: 100vh; }
+            .header-bar { padding: 15px 20px; }
+            .header-tools { width: 100%; justify-content: space-between; margin-top: 10px; }
+            .search-box { width: 100%; flex-grow: 1; margin-right: 10px; }
+            .list-item { padding: 15px 20px; }
+            .toolbar { padding: 10px 20px; gap: 10px; }
+            .tool-select { flex-grow: 1; }
+            .fav-btn-view { width: 100%; justify-content: center; margin-left: 0; }
+        }
         @media (min-width: 1024px) {
             .container { max-width: 95%; }
-            .manager-wrapper .tree-panel { flex: 3; }
-            .manager-wrapper .action-panel { flex: 1; max-width: 350px; }
+            .brand-link { pointer-events: auto; cursor: pointer; }
+            .brand-link:hover { opacity: 0.8; }
         }
-
-        /* --- 讀取畫面 (Loading) --- */
-        #loading-screen {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: #f5f7fa; z-index: 9999;
-            display: flex; flex-direction: column; justify-content: center; align-items: center;
-            transition: opacity 0.5s ease-out;
-        }
-        .spinner {
-            width: 40px; height: 40px; margin-bottom: 15px;
-            border: 4px solid #e0e0e0;
-            border-top: 4px solid #3498db; /* 藍色轉圈 */
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .loading-text { color: #3498db; font-weight: bold; font-size: 16px; letter-spacing: 1px; }
     </style>
 </head>
 <body>
 
-    <div id="loading-screen">
-        <div class="spinner"></div>
-        <div class="loading-text">資料讀取中...</div>
+    <div id="loading-mask"><div class="spinner"></div><div>資料讀取中...</div></div>
+
+    <div id="auth-container">
+        <div class="auth-box">
+            <div class="auth-tabs"><div class="auth-tab active" onclick="switchMode('login')">會員登入</div><div class="auth-tab" onclick="switchMode('register')">註冊帳號</div></div>
+            <div id="login-form">
+                <div class="form-title"><span class="secret-hand">👋</span> 歡迎回來</div>
+                <div class="input-group"><input type="email" id="loginEmail" placeholder="電子信箱"></div>
+                <div class="input-group"><input type="password" id="loginPass" placeholder="密碼"></div>
+                <button class="action-btn" onclick="handleLogin()" id="loginBtn">登入系統</button>
+            </div>
+            <div id="register-form" class="hidden">
+                <div class="form-title">📝 建立新帳號</div>
+                <div class="input-group"><input type="text" id="regName" placeholder="您的姓名"></div>
+                <div class="input-group"><input type="email" id="regEmail" placeholder="電子信箱"></div>
+                <div class="input-group"><input type="password" id="regPass" placeholder="設定密碼 (至少6位)"></div>
+                <button class="action-btn" onclick="handleRegister()" id="regBtn" style="background-color:#27ae60;">提交註冊申請</button>
+            </div>
+            <div id="msg-box" class="msg"></div>
+        </div>
     </div>
 
     <div id="custom-modal-overlay">
-        <div class="modal-box">
-            <div id="modal-icon" class="modal-icon-wrapper icon-blue">✏️</div>
-            <div id="modal-title" class="modal-title">標題</div>
-            <div id="modal-desc" class="modal-desc">說明文字</div>
-            <div id="modal-content"></div>
-            <div class="modal-btn-group">
-                <button class="modal-btn btn-cancel" onclick="closeModal()">取消</button>
-                <button id="modal-confirm-btn" class="modal-btn btn-confirm">確定</button>
-            </div>
-        </div>
+        <div class="modal-box"></div>
     </div>
 
-    <div id="login-panel">
-        <div class="login-box">
-            <h3>🔒 管理員登入</h3>
-            <input type="email" id="admEmail" class="login-input" placeholder="Email">
-            <input type="password" id="admPass" class="login-input" placeholder="密碼">
-            <button class="btn" style="background:#3498db; color:white;" onclick="doLogin()">登入</button>
-            <p id="loginMsg" style="color:red; font-size:12px; margin-top:10px;"></p>
-        </div>
-    </div>
-
-    <div class="container" id="main-panel" style="display:none;">
-        <h1>
-            <a href="https://jiachang1112.github.io/Jiachang/admin.html" class="title-link" title="https://jiachang1112.github.io/Jiachang/admin.html">
-                🛠️ 雲端資料庫
-            </a>
-            <div style="display:flex; align-items:center;">
-                <span id="adminName" style="font-size:14px; color:#27ae60; margin-right:10px;"></span>
-                <button class="btn" style="background:#34495e; color:white; width:auto; padding:6px 15px; font-size:12px;" onclick="location.reload()">登出</button>
-            </div>
-        </h1>
-
-        <div class="tabs">
-            <div class="tab active" data-type="files" onclick="switchTab('files')">📁 檔案管理</div>
-            <div class="tab" data-type="user" onclick="switchTab('user')">👥 會員審核</div>
-            <div class="tab" data-type="notify" onclick="switchTab('notify')">📢 發布通知</div>
-        </div>
-
-        <div id="sec-files" class="section active">
-            <div class="manager-wrapper">
-                <div class="tree-panel" id="treeRoot" oncontextmenu="openMenu(event, null)">
-                    <div style="text-align:center; padding:50px; color:#999;">讀取中...</div>
+    <div id="content" class="hidden">
+        <div class="container">
+            <div class="header-bar">
+                <div class="brand">
+                    <a href="https://jiachang1112.github.io/Jiachang/index.html" class="brand-link" title="https://jiachang1112.github.io/Jiachang/index.html">
+                        <span>📂</span> <div id="page-title">雲端資料庫</div>
+                    </a>
                 </div>
-                <div class="action-panel">
-                    <h4 style="margin-top:0;">操作說明</h4>
-                    <p style="font-size:13px; color:#666; line-height:1.6;">
-                        1. <b>拖曳排序</b>：按住檔案可拖曳調整順序。<br>
-                        2. <b>放入資料夾</b>：拖曳至資料夾「中間」變綠色放入。<br>
-                        3. 手機版請用選單的「⬆️ 上移 / ⬇️ 下移」。<br>
-                        4. 點擊 <b style="color:#2980b9">▶ 箭頭</b> 可收合/展開。<br>
-                        5. 右鍵可 <b>編輯詳情 (大小/日期)</b>。<br>
-                        6. <b>操作後請務必按儲存。</b>
-                    </p>
-                    <div style="margin-top:auto;">
-                        <div id="statusText" style="text-align:right; font-size:12px; color:#888; margin-bottom:5px;">資料已同步</div>
-                        <button class="btn btn-save disabled" id="saveBtn" onclick="saveToCloud()">💾 儲存變更到雲端</button>
+                <div class="header-tools">
+                    <div class="search-box">
+                        <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+                        <input type="text" id="searchInput" placeholder="搜尋關鍵字..." onkeyup="handleSearch()">
                     </div>
+                    <div class="theme-toggle" onclick="toggleTheme()"><span id="theme-icon">🌙</span></div>
+                    <div class="user-profile"><span class="user-name" id="user-display">User</span><div class="logout-btn" onclick="showLogoutModal()">登出</div></div>
                 </div>
             </div>
-        </div>
 
-        <div id="sec-user" class="section">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                <h3>註冊會員列表</h3>
-                <button onclick="loadUsers()" style="background:#eee; border:none; padding:8px 15px; border-radius:6px; cursor:pointer; color:#555; font-weight:bold; font-size:14px;">🔄 重新整理</button>
+            <div id="announcement-bar" class="hidden">
+                <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/></svg>
+                <span id="announcement-text"></span>
             </div>
-            <ul class="user-list" id="userList"></ul>
-        </div>
 
-        <div id="sec-notify" class="section">
-            <div class="form-group">
-                <label>📢 網站全域公告</label>
-                <textarea id="notifyText" placeholder="輸入公告內容..."></textarea>
+            <div class="nav-bar">
+                <button id="backBtn" class="back-btn hidden" onclick="goUp()">
+                    <span style="margin-right:5px;">⬅</span> 返回
+                </button>
+                <div class="breadcrumb" id="breadcrumb-container"></div>
             </div>
-            <div class="form-group">
-                <label>預覽：</label>
-                <div style="background:#fff3cd; color:#856404; padding:10px; border-radius:5px; border:1px solid #ffeeba;">
-                    📢 <span id="previewText">(無)</span>
-                </div>
+
+            <div class="toolbar" id="toolbar">
+                <select id="sortSelect" class="tool-select" onchange="refreshCurrentView()">
+                    <option value="name_asc">按名稱 (A-Z)</option>
+                    <option value="name_desc">按名稱 (Z-A)</option>
+                    <option value="type">按類型</option>
+                </select>
+
+                <select id="filterSelect" class="tool-select" onchange="refreshCurrentView()">
+                    <option value="all">顯示全部類型</option>
+                    <option value="link">🔗 連結</option>
+                    <option value="doc">📄 文件 (Doc/PDF)</option>
+                    <option value="video">🎥 影片</option>
+                    <option value="img">🖼️ 圖片</option>
+                </select>
+
+                <button class="fav-btn-view" onclick="toggleFavoritesView()" id="favViewBtn">
+                    <span>⭐</span> 查看我的最愛
+                </button>
             </div>
-            <button class="btn btn-post" onclick="postNotification()">🚀 發布公告</button>
-            <button class="btn btn-clear" onclick="clearNotification()">🗑️ 清除公告</button>
+
+            <div id="list-root"></div>
         </div>
     </div>
 
-    <div id="ctx-menu">
-        <div class="ctx-item" onclick="ctxAction('newFolder')"><span>📁</span> 新增資料夾</div>
-        <div class="ctx-item" onclick="ctxAction('newFile')"><span>📄</span> 新增檔案/連結</div>
+    <div id="context-menu">
+        <div class="ctx-item" onclick="handleCtxAction('open')"><span>📂</span> 開啟</div>
+        <div class="ctx-item" onclick="handleCtxAction('copy')"><span>📋</span> 複製連結</div>
         <div class="ctx-divider"></div>
-        <div class="ctx-item" onclick="ctxAction('moveUp')"><span>⬆️</span> 上移</div>
-        <div class="ctx-item" onclick="ctxAction('moveDown')"><span>⬇️</span> 下移</div>
+        <div class="ctx-item" onclick="handleCtxAction('fav')" id="ctx-fav-text"><span>⭐</span> 加入最愛</div>
+        <div class="ctx-item" onclick="handleCtxAction('pin')" id="ctx-pin-text"><span>📌</span> 置頂項目</div>
         <div class="ctx-divider"></div>
-        <div class="ctx-item" onclick="ctxAction('editDetails')"><span>📝</span> 編輯詳情 (含大小/日期)</div>
-        <div class="ctx-item" onclick="ctxAction('rename')"><span>✏️</span> 快速重新命名</div>
-        <div class="ctx-item" onclick="ctxAction('delete')" style="color:#e74c3c;"><span>🗑️</span> 刪除</div>
+        <div class="ctx-item" onclick="handleCtxAction('info')"><span>ℹ️</span> 詳細資訊</div>
+        <div class="ctx-divider"></div>
+        <div class="ctx-item delete" onclick="handleCtxAction('delete')"><span>🗑️</span> 刪除</div>
     </div>
+
+    <script src="config.js"></script>
 
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
@@ -288,361 +279,847 @@
         const auth = firebase.auth();
         const db = firebase.firestore();
 
-        let fileStructure = [];
-        let isDirty = false;
-        let activeItem = null, activeParentArray = null, activeIndex = -1;
-        let draggedItem = null, draggedParentArray = null, draggedIndex = -1;
+        // 🔴 臨時登入設定
+        const TEMP_CONFIG = {
+            passcode: "Jiachang",            
+            email: "jiachang@guest.com",     
+            passwordToken: "SmlhIGNoYW5n", 
+            
+            duration: 3 * 60 * 1000        
+        };
 
-        // 🟢 登入狀態監聽與 Loading 邏輯
-        auth.onAuthStateChanged(user => {
-            const loader = document.getElementById('loading-screen');
-            const loginPanel = document.getElementById('login-panel');
-            const mainPanel = document.getElementById('main-panel');
+        window.guest = function(passwordArg) {
+            let inputPass = passwordArg;
+            if (!inputPass) {
+                inputPass = prompt("🔐 請輸入臨時通關密碼：");
+            }
+            if (!inputPass) {
+                console.log("已取消登入。");
+                return;
+            }
 
-            if (user) {
-                // 已登入
-                document.getElementById('adminName').innerText = user.email;
-                loginPanel.style.display = 'none'; 
-                // 注意：這裡不直接顯示 mainPanel，而是等資料載入完 (loadFromCloud)
-                loadFromCloud(); 
-                loadUsers(); 
-                loadCurrentNotification();
+            if (inputPass === TEMP_CONFIG.passcode) {
+                console.log("🔄 密碼正確，正在驗證憑證...");
+                let realPassword = "";
+                try {
+                    realPassword = atob(TEMP_CONFIG.passwordToken);
+                } catch(e) {
+                    console.error("❌ 設定錯誤：Base64 解碼失敗");
+                    return;
+                }
+
+                if(!realPassword || realPassword.includes("你的_BASE64")) {
+                    alert("請先在程式碼中設定好 Firebase 訪客密碼！");
+                    return;
+                }
+
+                const btn = document.getElementById('loginBtn');
+                if(btn) {
+                    btn.disabled = true; 
+                    btn.innerText = "後台指令驗證中...";
+                }
+                
+                auth.signInWithEmailAndPassword(TEMP_CONFIG.email, realPassword)
+                    .then(() => {
+                        console.log("✅ 登入成功！臨時模式已啟動。");
+                        showMsg("臨時存取模式已啟動 (3分鐘)", "success");
+                    })
+                    .catch((error) => {
+                        if(btn) {
+                            btn.disabled = false;
+                            btn.innerText = "登入系統";
+                        }
+                        console.error("❌ 登入失敗:", error);
+                        alert("登入失敗，請檢查 Firebase 帳號設定。");
+                    });
             } else {
-                // 未登入
-                mainPanel.style.display = 'none';
-                loginPanel.style.display = 'flex';
-                // 未登入就直接關閉轉圈圈
-                if(loader) loader.style.display = 'none';
+                console.error("🚫 密碼錯誤！");
+                if (!passwordArg) alert("密碼錯誤！");
+            }
+        };
+        
+        console.log("%c🔧 系統已就緒 🔧", "color: #3498db; font-size: 12px; font-weight: bold;");
+
+        function getGreeting() {
+            const hour = new Date().getHours();
+            if (hour < 12) return "早安";
+            if (hour < 18) return "午安";
+            return "晚安";
+        }
+
+        function initTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            updateThemeIcon(savedTheme);
+        }
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            updateThemeIcon(newTheme);
+        }
+        function updateThemeIcon(theme) {
+            document.getElementById('theme-icon').innerText = theme === 'light' ? '🌙' : '☀️';
+        }
+
+        function listenForAnnouncements() {
+            db.collection("system").doc("announcement").onSnapshot((doc) => {
+                const bar = document.getElementById('announcement-bar');
+                if (doc.exists && doc.data().active && doc.data().text) {
+                    bar.classList.remove('hidden');
+                    document.getElementById('announcement-text').innerText = doc.data().text;
+                } else {
+                    bar.classList.add('hidden');
+                }
+            });
+        }
+
+        initTheme();
+
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                checkUserStatus(user);
+            } else {
+                document.getElementById('loading-mask').style.display = 'none';
             }
         });
 
-        function doLogin() {
-            auth.signInWithEmailAndPassword(document.getElementById('admEmail').value, document.getElementById('admPass').value)
-                .catch(e => document.getElementById('loginMsg').innerText = e.message);
+        function switchMode(mode) {
+            document.querySelectorAll('.auth-tab').forEach(el => el.classList.remove('active'));
+            document.getElementById('msg-box').innerText = '';
+            if (mode === 'login') {
+                document.querySelectorAll('.auth-tab')[0].classList.add('active');
+                document.getElementById('login-form').classList.remove('hidden');
+                document.getElementById('register-form').classList.add('hidden');
+            } else {
+                document.querySelectorAll('.auth-tab')[1].classList.add('active');
+                document.getElementById('login-form').classList.add('hidden');
+                document.getElementById('register-form').classList.remove('hidden');
+            }
+        }
+        function showMsg(text, type) {
+            const el = document.getElementById('msg-box');
+            el.innerText = text;
+            el.className = 'msg ' + type;
         }
 
-        // ==========================
-        // 🟢 檔案管理 (含 Loading 關閉邏輯)
-        // ==========================
-        function loadFromCloud() {
-            db.collection('system').doc('files').get().then(doc => {
-                if (doc.exists && doc.data().items) {
-                    fileStructure = doc.data().items;
-                    renderTree();
-                    markSaved();
-                } else {
-                    document.getElementById('treeRoot').innerHTML = '<div style="text-align:center; padding:50px;">雲端無資料，請右鍵新增</div>';
-                }
-                
-                // --- 資料讀取完畢，顯示畫面並關閉轉圈圈 ---
-                document.getElementById('main-panel').style.display = 'flex';
-                const loader = document.getElementById('loading-screen');
-                if(loader) {
-                    loader.style.opacity = '0'; // 淡出效果
-                    setTimeout(() => { loader.style.display = 'none'; }, 500); 
-                }
+        function handleRegister() {
+            const name = document.getElementById('regName').value.trim();
+            const email = document.getElementById('regEmail').value.trim();
+            const pass = document.getElementById('regPass').value.trim();
+            if(!name || !email || !pass) return showMsg("所有欄位都要填寫喔", "error");
+            if(pass.length < 6) return showMsg("密碼至少要 6 個字", "error");
+            const btn = document.getElementById('regBtn');
+            btn.disabled = true; btn.innerText = "註冊中...";
+            auth.createUserWithEmailAndPassword(email, pass).then((userCredential) => {
+                return db.collection("users").doc(userCredential.user.uid).set({
+                    name: name, email: email, status: "pending", createdAt: new Date()
+                });
+            }).then(() => {
+                showMsg("註冊成功！請等待核准。", "success");
+                btn.disabled = false; btn.innerText = "提交註冊申請";
+                auth.signOut(); setTimeout(() => switchMode('login'), 3000);
+            }).catch((error) => {
+                btn.disabled = false; btn.innerText = "提交註冊申請";
+                showMsg("註冊失敗: " + error.message, "error");
+            });
+        }
+        function handleLogin() {
+            const email = document.getElementById('loginEmail').value.trim();
+            const pass = document.getElementById('loginPass').value.trim();
+            if(!email || !pass) return showMsg("請輸入帳號密碼", "error");
+            const btn = document.getElementById('loginBtn');
+            btn.disabled = true; btn.innerText = "驗證中...";
+            auth.signInWithEmailAndPassword(email, pass).catch((error) => {
+                btn.disabled = false; btn.innerText = "登入系統";
+                showMsg("帳號或密碼錯誤", "error");
+            });
+        }
+        
+        function checkUserStatus(user) {
+            db.collection("users").doc(user.uid).get().then((doc) => {
+                document.getElementById('loading-mask').style.display = 'none';
+                if (doc.exists) {
+                    const userData = doc.data();
+                    if (userData.status === 'approved') {
+                        enterSite(userData.name);
 
-            }).catch(e => {
-                console.error(e);
-                // 錯誤時也要顯示畫面，避免卡死
-                document.getElementById('main-panel').style.display = 'flex';
-                document.getElementById('loading-screen').style.display = 'none';
+                        if (user.email === TEMP_CONFIG.email) {
+                            console.log(`臨時模式啟動：${TEMP_CONFIG.duration / 1000}秒後登出`);
+                            const announceBar = document.getElementById('announcement-bar');
+                            announceBar.classList.remove('hidden');
+                            document.getElementById('announcement-text').innerText = `⚠️ 這是臨時登入模式，系統將在 3 分鐘後自動登出。`;
+
+                            setTimeout(() => {
+                                auth.signOut().then(() => {
+                                    alert("⏳ 臨時存取時間結束，已自動登出。");
+                                    location.reload();
+                                });
+                            }, TEMP_CONFIG.duration);
+                        }
+
+                    } else {
+                        auth.signOut();
+                        document.getElementById('loginBtn').disabled = false;
+                        document.getElementById('loginBtn').innerText = "登入系統";
+                        showMsg("您的帳號尚在審核中。", "error");
+                    }
+                } else { showMsg("找不到使用者資料", "error"); }
+            }).catch((error) => { document.getElementById('loading-mask').style.display = 'none'; showMsg("讀取資料失敗", "error"); });
+        }
+
+        // 🔴 修正後的登出功能
+        function showLogoutModal() {
+            const overlay = document.getElementById('custom-modal-overlay');
+            const box = overlay.querySelector('.modal-box');
+
+            box.innerHTML = `
+                <div class="modal-icon-wrapper icon-delete">!</div>
+                <div class="modal-title">確認操作</div>
+                <div class="modal-desc">您確定要登出目前的帳號嗎？</div>
+                <div class="modal-btn-group">
+                    <button class="modal-btn btn-cancel" onclick="closeModal()">取消</button>
+                    <button class="modal-btn btn-confirm-delete" onclick="performLogout()">登出</button>
+                </div>
+            `;
+            overlay.style.display = 'flex';
+            setTimeout(() => { overlay.classList.add('show'); }, 10);
+        }
+
+        function performLogout() {
+            auth.signOut().then(() => {
+                window.location.reload();
             });
         }
 
-        function saveToCloud() {
-            if (!isDirty) return;
-            const btn = document.getElementById('saveBtn');
-            btn.innerText = "儲存中...";
-            db.collection('system').doc('files').set({ items: fileStructure }).then(() => {
-                showModal('info', '系統提示', '儲存成功！', [], 'icon-blue', '✅', () => { closeModal(); });
-                markSaved();
-            }).catch(e => {
-                showModal('info', '錯誤', '儲存失敗：' + e.message, [], 'icon-red', '❌', () => { closeModal(); });
-                btn.innerText = "💾 儲存變更到雲端";
-            });
-        }
+        let pathStack = [];
+        let allFilesFlat = [];
+        let allFoldersFlat = []; 
+        let cloudItems = []; 
+        let userFavorites = []; 
+        let userPinned = []; 
+        let isViewFavoritesMode = false;
+        let selectedItem = null; // 🟢 記錄目前選取的項目
 
-        function renderTree() {
-            const root = document.getElementById('treeRoot');
-            root.innerHTML = '';
-            if (fileStructure.length > 0) renderNodes(fileStructure, root);
+        function enterSite(userName) {
+            document.getElementById('auth-container').classList.add('hidden');
+            document.getElementById('content').classList.remove('hidden');
+            document.getElementById('user-display').innerText = `${getGreeting()}，${userName}`;
             
-            const addRootBtn = document.createElement('div');
-            addRootBtn.className = 'add-root-btn';
-            addRootBtn.innerHTML = '<span>➕ 新增根目錄資料夾</span>';
-            addRootBtn.onclick = () => { activeItem = null; activeParentArray = fileStructure; ctxAction('newFolder'); };
-            root.appendChild(addRootBtn);
+            const uid = auth.currentUser.uid;
+            db.collection("users").doc(uid).get().then((doc) => {
+                if(doc.exists) {
+                    const d = doc.data();
+                    userFavorites = d.favorites || [];
+                    userPinned = d.pinned || [];
+                } else {
+                    userFavorites = [];
+                    userPinned = [];
+                }
+                initSite(); 
+                listenForAnnouncements(); 
+            });
         }
 
-        function renderNodes(items, container) {
-            items.forEach((item, index) => {
-                const el = document.createElement('div');
-                const menuBtn = `<span class="node-menu-btn" onclick="openMenu(event, this.parentElement.itemRef, this.parentElement.parentRef, ${index})">⋮</span>`;
-                el.itemRef = item; el.parentRef = items; el.indexRef = index;
-                el.setAttribute('draggable', 'true');
-                el.ondragstart = (e) => handleDragStart(e, item, items, index);
-                el.ondragover = (e) => handleDragOver(e, el, item);
-                el.ondragleave = (e) => handleDragLeave(e, el);
-                el.ondrop = (e) => handleDrop(e, item, items, index);
+        function initSite() {
+            document.title = CONFIG.pageTitle || "雲端資料庫";
+            document.getElementById("page-title").innerText = CONFIG.pageTitle || "雲端資料庫";
+            
+            db.collection('system').doc('files').onSnapshot(doc => {
+                if (doc.exists && doc.data().items) {
+                    cloudItems = doc.data().items;
+                    allFilesFlat = flattenItems(cloudItems);
+                    allFoldersFlat = [];
+                    processFolderPaths(cloudItems);
 
-                if (item.type === 'folder') {
-                    el.className = 'node folder';
-                    if (item.collapsed === undefined) item.collapsed = false; 
-                    const caretClass = item.collapsed ? 'caret' : 'caret expanded';
-                    el.innerHTML = `<div class="node-content"><span class="${caretClass}">▶</span><span class="node-icon">📁</span><span class="node-text">${item.name}</span></div> ${menuBtn}`;
-                    el.oncontextmenu = (e) => { e.stopPropagation(); openMenu(e, item, items, index); };
-                    const childBox = document.createElement('div');
-                    childBox.className = item.collapsed ? 'children-container collapsed' : 'children-container';
-                    el.querySelector('.node-content').onclick = (e) => { e.stopPropagation(); item.collapsed = !item.collapsed; renderTree(); };
-                    renderNodes(item.children, childBox);
-                    container.appendChild(el); container.appendChild(childBox);
-                } else {
-                    // --- 🟢 加入圖示判斷邏輯 ---
-                    let icon = item.icon || '📄'; 
-                    if (item.path && (item.path.startsWith('http://') || item.path.startsWith('https://'))) {
-                        const isYoutube = item.path.includes('youtu');
-                        const isImage = item.path.match(/\.(jpg|png|jpeg|gif|webp)$/i);
-                        
-                        if (!isYoutube && !isImage) {
-                            icon = '🔗';
+                    if (pathStack.length === 0) {
+                        restorePathFromUrl();
+                    } else {
+                        const isSearching = document.querySelector('.nav-bar').classList.contains('hidden');
+                        if(isSearching && !isViewFavoritesMode) {
+                            handleSearch();
+                        } else {
+                            refreshCurrentView();
                         }
                     }
-                    // --- 🟢 修改結束 ---
-
-                    el.className = 'node file';
-                    el.innerHTML = `<div class="node-content"><span class="caret hidden">▶</span><span class="node-icon">${icon}</span><span class="node-text">${item.name}</span></div> ${menuBtn}`;
-                    el.oncontextmenu = (e) => { e.stopPropagation(); openMenu(e, item, items, index); };
-                    container.appendChild(el);
+                } else {
+                    cloudItems = [];
+                    allFilesFlat = [];
+                    allFoldersFlat = [];
+                    renderList([]);
                 }
+            }, error => {
+                console.error("監聽失敗:", error);
             });
         }
 
-        function handleDragStart(e, item, parentArray, index) { e.stopPropagation(); draggedItem = item; draggedParentArray = parentArray; draggedIndex = index; e.target.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; }
-        function handleDragOver(e, el, targetItem) { e.preventDefault(); e.stopPropagation(); if (el.classList.contains('dragging')) return; const rect = el.getBoundingClientRect(); const relY = e.clientY - rect.top; const height = rect.height; el.classList.remove('drag-over-top', 'drag-over-bottom', 'drag-over-inside'); if (targetItem.type === 'folder' && relY > height * 0.25 && relY < height * 0.75) { if(!isDescendant(draggedItem, targetItem)) el.classList.add('drag-over-inside'); } else if (relY < height * 0.5) el.classList.add('drag-over-top'); else el.classList.add('drag-over-bottom'); }
-        function handleDragLeave(e, el) { el.classList.remove('drag-over-top', 'drag-over-bottom', 'drag-over-inside'); }
-        function handleDrop(e, targetItem, targetParentArray, targetIndex) { e.preventDefault(); e.stopPropagation(); const el = e.currentTarget; el.classList.remove('dragging'); if (el.classList.contains('drag-over-inside')) { if(draggedItem === targetItem) return; draggedParentArray.splice(draggedIndex, 1); targetItem.children.push(draggedItem); targetItem.collapsed = false; } else if (el.classList.contains('drag-over-top')) { executeMove(targetParentArray, targetIndex); } else if (el.classList.contains('drag-over-bottom')) { executeMove(targetParentArray, targetIndex + 1); } el.classList.remove('drag-over-top', 'drag-over-bottom', 'drag-over-inside'); markDirty(); renderTree(); }
-        function executeMove(targetParentArray, insertIndex) { if (draggedParentArray === targetParentArray) { if (draggedIndex < insertIndex) insertIndex--; draggedParentArray.splice(draggedIndex, 1); draggedParentArray.splice(insertIndex, 0, draggedItem); } else { draggedParentArray.splice(draggedIndex, 1); targetParentArray.splice(insertIndex, 0, draggedItem); } }
-        function isDescendant(parent, child) { if (parent === child) return true; if (parent.children) { for (let sub of parent.children) { if (isDescendant(sub, child)) return true; } } return false; }
+        function refreshCurrentView() {
+            let itemsToRender = [];
+            // 清除選取狀態
+            selectedItem = null;
 
-        function openMenu(e, item, parentArray, index) { e.preventDefault(); e.stopPropagation(); const menu = document.getElementById('ctx-menu'); activeItem = item; activeParentArray = parentArray || fileStructure; activeIndex = index; let x = (e.type === 'click') ? e.target.getBoundingClientRect().left - 100 : e.pageX; let y = (e.type === 'click') ? e.target.getBoundingClientRect().bottom + 5 : e.pageY; if(x < 10) x = 10; menu.style.display = 'block'; menu.style.left = x + 'px'; menu.style.top = y + 'px'; document.addEventListener('click', () => menu.style.display = 'none', { once: true }); }
-
-        function ctxAction(action) {
-            document.getElementById('ctx-menu').style.display = 'none';
-
-            // 1. 新增資料夾 (保持原樣)
-            if (action === 'newFolder') {
-                showModal('input', '新增資料夾', '請輸入名稱', [{id:'folderName', placeholder:'名稱'}], 'icon-blue', '📁', (v) => { 
-                    if (!v.folderName) return; 
-                    const newItem = { type: 'folder', name: v.folderName, children: [], collapsed: false }; 
-                    (activeItem && activeItem.type === 'folder' ? activeItem.children : activeParentArray).push(newItem); 
-                    if(activeItem && activeItem.type === 'folder') activeItem.collapsed = false; 
-                    finishAction(); 
-                });
+            if (isViewFavoritesMode) {
+                const allItems = [...allFilesFlat, ...allFoldersFlat];
+                itemsToRender = allItems.filter(item => userFavorites.includes(item.path));
+                document.getElementById("breadcrumb-container").innerHTML = `<span class="breadcrumb-current">⭐ 我的最愛</span>`;
+                document.getElementById("backBtn").classList.remove("hidden");
+                document.getElementById("backBtn").onclick = exitFavoritesView;
+            } else if (document.querySelector('.nav-bar').classList.contains('hidden')) {
+                return; 
+            } else {
+                if (pathStack.length === 0) {
+                    itemsToRender = cloudItems;
+                } else {
+                    itemsToRender = pathStack[pathStack.length - 1].children || [];
+                }
+                updateBreadcrumb();
             }
-            
-            // 2. 新增檔案 (🟢 修改：加入檔案大小欄位，自動產生日期)
-            else if (action === 'newFile') {
-                showModal('input', '新增檔案', '請輸入詳細資訊', [
-                    {id:'fileName', placeholder:'名稱 (例如: 財報.pdf)'}, 
-                    {id:'filePath', placeholder:'連結/路徑'},
-                    {id:'fileSize', placeholder:'檔案大小 (例如: 5 MB)'} // 新增這欄
-                ], 'icon-blue', '📄', (v) => { 
-                    if (!v.fileName) return; 
-                    
-                    // 自動判斷圖示
-                    let icon = '📄';
-                    if (v.filePath.includes('youtu')) icon = "🎥";
-                    else if (v.filePath.match(/\.(jpg|png|jpeg|gif|webp)$/i)) icon = "🖼️";
-                    else if (v.filePath.startsWith('http')) icon = "🔗";
 
-                    // 自動產生今天日期 (YYYY/MM/DD)
-                    const today = new Date();
-                    const dateStr = today.getFullYear() + '/' + (today.getMonth()+1).toString().padStart(2,'0') + '/' + today.getDate().toString().padStart(2,'0');
-
-                    const newItem = { 
-                        type: 'file', 
-                        name: v.fileName, 
-                        path: v.filePath, 
-                        size: v.fileSize || '',  // 存入大小
-                        createdAt: dateStr,      // 存入日期
-                        note: '', 
-                        icon: icon 
-                    }; 
-                    
-                    (activeItem && activeItem.type === 'folder' ? activeItem.children : activeParentArray).push(newItem); 
-                    if(activeItem && activeItem.type === 'folder') activeItem.collapsed = false; 
-                    finishAction(); 
+            const filterType = document.getElementById('filterSelect').value;
+            if (filterType !== 'all') {
+                itemsToRender = itemsToRender.filter(item => {
+                    if (item.type === 'folder') return true; 
+                    let fileType = getFileType(item);
+                    if (filterType === 'doc') return ['doc', 'pdf', 'ppt'].includes(fileType);
+                    if (filterType === 'video') return fileType === 'video';
+                    if (filterType === 'img') return fileType === 'img';
+                    if (filterType === 'link') return fileType === 'link';
+                    return true;
                 });
             }
 
-            // 3. 編輯詳情 (🟢 新增功能：修改現有檔案的所有資料)
-            else if (action === 'editDetails' && activeItem) {
-                // 預設值處理
-                const currentName = activeItem.name || '';
-                const currentPath = activeItem.path || '';
-                const currentSize = activeItem.size || '';
-                
-                // 處理日期顯示
-                let currentDate = '';
-                if(activeItem.createdAt && activeItem.createdAt.seconds) {
-                     const d = new Date(activeItem.createdAt.seconds * 1000);
-                     currentDate = d.getFullYear() + '/' + (d.getMonth()+1).toString().padStart(2,'0') + '/' + d.getDate().toString().padStart(2,'0');
-                } else {
-                     currentDate = activeItem.createdAt || '';
-                }
+            const sortType = document.getElementById('sortSelect').value;
+            itemsToRender = [...itemsToRender].sort((a, b) => {
+                const isAPinned = userPinned.includes(a.path);
+                const isBPinned = userPinned.includes(b.path);
+                if (isAPinned && !isBPinned) return -1;
+                if (!isAPinned && isBPinned) return 1;
+                if (a.type === 'folder' && b.type !== 'folder') return -1;
+                if (a.type !== 'folder' && b.type === 'folder') return 1;
+                if (sortType === 'name_asc') return a.name.localeCompare(b.name, "zh-Hant");
+                if (sortType === 'name_desc') return b.name.localeCompare(a.name, "zh-Hant");
+                if (sortType === 'type') { return (a.type || '').localeCompare(b.type || ''); }
+                return 0;
+            });
 
-                const currentNote = activeItem.note || '';
+            renderList(itemsToRender);
+        }
 
-                // 判斷是資料夾還是檔案，顯示不同的輸入框
-                let inputs = [];
-                if (activeItem.type === 'folder') {
-                    inputs = [{id:'eName', val: currentName, placeholder:'資料夾名稱'}];
-                } else {
-                    inputs = [
-                        {id:'eName', val: currentName, placeholder:'檔案名稱'},
-                        {id:'ePath', val: currentPath, placeholder:'連結路徑'},
-                        {id:'eSize', val: currentSize, placeholder:'大小 (如: 1.2 MB)'},
-                        {id:'eDate', val: currentDate, placeholder:'日期 (如: 2024/01/01)'},
-                        {id:'eNote', val: currentNote, placeholder:'備註'}
-                    ];
-                }
+        function getFileType(item) {
+            if (item.icon === '🎥' || (item.path && item.path.includes('youtu'))) return 'video';
+            if (item.icon === '🖼️' || (item.path && item.path.match(/\.(jpg|png|jpeg)$/i))) return 'img';
+            if (item.path && (item.path.startsWith('http://') || item.path.startsWith('https://'))) {
+                if (!item.path.match(/\.(pdf|doc|docx|ppt|pptx|xls|xlsx)$/i)) return 'link';
+            }
+            if (item.path && item.path.match(/\.pdf$/i)) return 'pdf';
+            if (item.path && item.path.match(/\.ppt(x)?$/i)) return 'ppt';
+            return 'doc';
+        }
 
-                showModal('input', '編輯詳情', '修改檔案資訊', inputs, 'icon-blue', '✏️', (v) => {
-                    if(v.eName) activeItem.name = v.eName;
-                    
-                    if (activeItem.type === 'file') {
-                        activeItem.path = v.ePath;
-                        activeItem.size = v.eSize;
-                        activeItem.createdAt = v.eDate;
-                        activeItem.note = v.eNote;
-                        
-                        // 重新判斷圖示 (如果連結改了)
-                        if (v.ePath.includes('youtu')) activeItem.icon = "🎥";
-                        else if (v.ePath.match(/\.(jpg|png|jpeg|gif|webp)$/i)) activeItem.icon = "🖼️";
-                        else if (v.ePath.startsWith('http') && !activeItem.icon) activeItem.icon = "🔗";
+        function flattenItems(items) {
+            let result = [];
+            items.forEach(item => {
+                if(item.type === 'file') { result.push(item); } 
+                else if(item.type === 'folder' && item.children) { result = result.concat(flattenItems(item.children)); }
+            });
+            return result;
+        }
+
+        function processFolderPaths(items, parentPath = '') {
+            items.forEach(item => {
+                if (item.type === 'folder') {
+                    item.path = parentPath ? parentPath + '/' + item.name : item.name;
+                    allFoldersFlat.push(item);
+                    if (item.children) {
+                        processFolderPaths(item.children, item.path);
                     }
-                    finishAction();
-                });
-            }
-
-            // 4. 快速重新命名
-            else if (action === 'rename' && activeItem) {
-                showModal('input', '重新命名', '', [{id:'newName', val:activeItem.name}], 'icon-blue', '✏️', (v) => { 
-                    if(v.newName) { activeItem.name = v.newName; finishAction(); } 
-                });
-            }
-            
-            // 5. 刪除與移動
-            else if (action === 'delete' && activeItem) showModal('confirm', '確認刪除', `刪除「${activeItem.name}」？`, [], 'icon-red', '!', () => { activeParentArray.splice(activeIndex, 1); finishAction(); });
-            else if (action === 'moveUp' && activeIndex > 0) { const temp = activeParentArray[activeIndex]; activeParentArray[activeIndex] = activeParentArray[activeIndex - 1]; activeParentArray[activeIndex - 1] = temp; finishAction(); }
-            else if (action === 'moveDown' && activeIndex < activeParentArray.length - 1) { const temp = activeParentArray[activeIndex]; activeParentArray[activeIndex] = activeParentArray[activeIndex + 1]; activeParentArray[activeIndex + 1] = temp; finishAction(); }
+                }
+            });
         }
 
-        function finishAction() { markDirty(); renderTree(); closeModal(); }
+        function handleSearch() {
+            const query = document.getElementById('searchInput').value.toLowerCase().trim();
+            const navBar = document.querySelector('.nav-bar');
+            const toolbar = document.getElementById('toolbar'); 
 
-        // Modal
-        function showModal(type, title, desc, inputs, iconClass, iconText, callback) {
-            const overlay = document.getElementById('custom-modal-overlay');
-            const content = document.getElementById('modal-content');
-            const confirmBtn = document.getElementById('modal-confirm-btn');
-            document.getElementById('modal-icon').className = 'modal-icon-wrapper ' + iconClass;
-            document.getElementById('modal-icon').innerText = iconText;
-            document.getElementById('modal-title').innerText = title;
-            document.getElementById('modal-desc').innerText = desc;
-            content.innerHTML = '';
-            if(inputs && inputs.length > 0) {
-                inputs.forEach(inp => {
-                    const el = document.createElement('input'); el.type = 'text'; el.className = 'modal-input'; el.id = inp.id; el.placeholder = inp.placeholder || ''; if(inp.val) el.value = inp.val; content.appendChild(el);
-                });
+            if (query.length > 0) {
+                navBar.classList.add('hidden');
+                toolbar.classList.add('hidden'); 
+                isViewFavoritesMode = false; 
+                
+                const matchedFiles = allFilesFlat.filter(item => 
+                    item.name.toLowerCase().includes(query) || (item.note && item.note.toLowerCase().includes(query))
+                );
+                renderSearchList(matchedFiles, query); 
+            } else {
+                navBar.classList.remove('hidden');
+                toolbar.classList.remove('hidden');
+                refreshCurrentView();
             }
-            confirmBtn.className = 'modal-btn btn-confirm ' + (iconClass === 'icon-red' ? 'danger' : '');
-            confirmBtn.onclick = () => { const v={}; if(inputs) inputs.forEach(i=>v[i.id]=document.getElementById(i.id).value.trim()); callback(v); };
-            overlay.style.display = 'flex'; setTimeout(() => overlay.classList.add('show'), 10);
         }
-        function closeModal() { const o = document.getElementById('custom-modal-overlay'); o.classList.remove('show'); setTimeout(() => o.style.display = 'none', 300); }
 
-        function markDirty() { isDirty = true; document.getElementById('treeRoot').classList.add('unsaved'); document.getElementById('saveBtn').classList.remove('disabled'); document.getElementById('statusText').innerText = "⚠️ 變更未儲存"; }
-        function markSaved() { isDirty = false; document.getElementById('treeRoot').classList.remove('unsaved'); document.getElementById('saveBtn').classList.add('disabled'); document.getElementById('saveBtn').innerText = "💾 儲存變更到雲端"; document.getElementById('statusText').innerText = "資料已同步"; }
+        function renderSearchList(items, query) {
+            const container = document.getElementById("list-root");
+            container.innerHTML = "";
+            if (items.length === 0) {
+                container.innerHTML = '<div style="text-align:center; padding:40px; color:var(--text-sub);">沒有找到符合的檔案</div>';
+                return;
+            }
+            items.forEach(item => {
+                const highlightedName = item.name.replace(new RegExp(query, "gi"), (match) => `<span class="highlight">${match}</span>`);
+                renderFileItem(container, item, highlightedName);
+            });
+        }
 
-        // Other Logic
-        function loadUsers() { 
-            const list = document.getElementById('userList');
-            list.innerHTML = '<li style="text-align:center; padding:20px; color:#999;">讀取中...</li>';
-            db.collection("users").orderBy("createdAt", "desc").get().then(s => { 
-                let h=''; 
-                s.forEach(d=>{ 
-                    const u=d.data(); 
-                    const isApproved = u.status === 'approved';
-                    const isPending = u.status === 'pending';
-                    const isSuspended = u.status === 'suspended';
+        // 🟢 點選項目 (Single Click)
+        function selectItem(divElement, item) {
+            // 清除其他已選取
+            document.querySelectorAll('.list-item').forEach(el => el.classList.remove('selected'));
+            // 選取當前
+            divElement.classList.add('selected');
+            selectedItem = item;
+        }
+
+        function renderList(items) {
+            const container = document.getElementById("list-root");
+            container.innerHTML = ""; 
+            if (!items || items.length === 0) {
+                container.innerHTML = '<div style="text-align:center; padding:40px; color:var(--text-sub);">(此列表是空的)</div>';
+                return;
+            }
+            items.forEach(item => {
+                if (item.type === 'folder') {
+                    const div = document.createElement("div");
+                    const isFav = userFavorites.includes(item.path);
+                    const starClass = isFav ? 'active' : '';
+                    const isPinned = userPinned.includes(item.path);
+                    const pinClass = isPinned ? 'active' : '';
+                    const pinnedItemClass = isPinned ? 'is-pinned' : '';
+
+                    div.className = `list-item folder-item ${pinnedItemClass}`;
+                    div.oncontextmenu = (e) => showContextMenu(e, item);
                     
-                    let statusHtml = '';
-                    if (isPending) statusHtml = '<span class="u-status status-pending">待審核</span>';
-                    else if (isApproved) statusHtml = '<span class="u-status status-approved">已通過</span>';
-                    else if (isSuspended) statusHtml = '<span class="u-status status-suspended">已停用</span>';
-
-                    let actionBtn = '';
-                    if (isPending) actionBtn = `<button class="btn-action btn-approve" onclick="approveUser('${d.id}')">✅ 核准</button>`;
-                    else if (isApproved) actionBtn = `<button class="btn-action btn-suspend" onclick="suspendUser('${d.id}')">⛔ 停用</button>`;
-                    else if (isSuspended) actionBtn = `<button class="btn-action btn-approve" onclick="approveUser('${d.id}')">🔄 復原</button>`;
-
-                    h+=`<li class="user-item">
-                        <div class="user-info">
-                            <div><span class="u-name">${u.name}</span> ${statusHtml}</div>
-                            <small style="color:#888;">${u.email}</small>
+                    div.innerHTML = `
+                        <div class="action-icons">
+                            <span class="icon-btn star-icon ${starClass}" onclick="toggleFavorite(event, '${item.path}')">★</span>
+                            <span class="icon-btn pin-icon ${pinClass}" onclick="togglePin(event, '${item.path}')">📌</span>
                         </div>
-                        ${actionBtn}
-                    </li>`; 
-                }); 
-                list.innerHTML=h||'<li style="text-align:center; padding:20px;">無會員資料</li>'; 
-            }).catch(err => {
-                 list.innerHTML = `<li style="text-align:center; color:red;">讀取失敗：${err.message}</li>`;
+                        <div class="item-icon">📁</div>
+                        <div class="item-info">
+                            <div class="item-name">${item.name}</div>
+                            <div class="item-note">${item.children ? item.children.length + ' 個項目' : '空資料夾'}</div>
+                        </div>
+                        <div class="item-arrow" onclick="enterFolder(event, JSON.parse('${JSON.stringify(item).replace(/'/g, "\\'")}'))">➤</div>`;
+                        
+                    // 🟢 邏輯修改：單擊選取，雙擊進入
+                    div.onclick = (e) => {
+                          if(!e.target.classList.contains('icon-btn') && !e.target.classList.contains('item-arrow')) {
+                            selectItem(div, item);
+                          }
+                    };
+                    div.ondblclick = (e) => {
+                        if(!e.target.classList.contains('icon-btn')) {
+                            enterFolder(null, item);
+                        }
+                    };
+                    
+                    container.appendChild(div);
+                } else {
+                    renderFileItem(container, item, item.name);
+                }
             });
         }
 
-        // 🟢 核准 / 復原
-        function approveUser(uid) { 
-            showModal('confirm', '確認核准', '確定要核准這位會員嗎？', [], 'icon-blue', '✅', () => { 
-                db.collection("users").doc(uid).update({status:"approved"}).then(() => {
-                    loadUsers();
-                    closeModal();
-                }); 
-            }); 
+        function renderFileItem(container, item, displayName) {
+            const div = document.createElement("div");
+            
+            let icon = item.icon; 
+            if (item.path && (item.path.startsWith('http://') || item.path.startsWith('https://'))) {
+                const isYoutube = item.path.includes('youtu');
+                const isImage = item.path.match(/\.(jpg|png|jpeg|gif|webp)$/i);
+                if (!isYoutube && !isImage) icon = '🔗';
+            }
+            if (!icon) icon = (item.path && item.path.match(/\.(pdf|doc|docx|ppt|pptx|xls|xlsx)$/i)) ? '📄' : '📄';
+
+            let fileType = getFileType(item);
+            const isFav = userFavorites.includes(item.path);
+            const starClass = isFav ? 'active' : '';
+            const isPinned = userPinned.includes(item.path);
+            const pinClass = isPinned ? 'active' : '';
+            const pinnedItemClass = isPinned ? 'is-pinned' : '';
+
+            div.className = `list-item file-item ${pinnedItemClass}`;
+            div.oncontextmenu = (e) => showContextMenu(e, item);
+
+            div.innerHTML = `
+                <div class="action-icons">
+                    <span class="icon-btn star-icon ${starClass}" onclick="toggleFavorite(event, '${item.path}')">★</span>
+                    <span class="icon-btn pin-icon ${pinClass}" onclick="togglePin(event, '${item.path}')">📌</span>
+                </div>
+                <div class="item-icon" data-type="${fileType}">${icon}</div>
+                <div class="item-info">
+                    <div class="item-name">${displayName}</div>
+                    <div class="item-note">${item.note || ''}</div>
+                </div>`;
+            
+            // 🟢 邏輯修改：單擊選取，雙擊開啟
+            div.onclick = (e) => {
+                if(!e.target.classList.contains('icon-btn')) {
+                    selectItem(div, item);
+                }
+            };
+            div.ondblclick = (e) => {
+                if(!e.target.classList.contains('icon-btn')) {
+                    window.open(item.path, '_blank');
+                }
+            };
+
+            container.appendChild(div);
         }
 
-        // 🟢 停用 (新增的功能)
-        function suspendUser(uid) {
-            showModal('confirm', '確認停用', '確定要停用此帳號嗎？使用者將無法登入。', [], 'icon-red', '!', () => {
-                db.collection("users").doc(uid).update({status:"suspended"}).then(() => {
-                    loadUsers();
+        function showModal(title, desc, type) {
+            const overlay = document.getElementById('custom-modal-overlay');
+            const box = overlay.querySelector('.modal-box');
+            
+            let iconClass = 'icon-blue';
+            let iconText = 'ℹ️';
+
+            if (type === 'success') { iconClass = 'icon-green'; iconText = '✅'; }
+            else if (type === 'error') { iconClass = 'icon-red'; iconText = '🗑️'; }
+
+            box.innerHTML = `
+                <div class="modal-icon-wrapper ${iconClass}">${iconText}</div>
+                <div class="modal-title">${title}</div>
+                <div class="modal-desc">${desc}</div>
+                <button class="modal-btn" onclick="closeModal()">好，我知道了</button>
+            `;
+            
+            overlay.style.display = 'flex';
+            setTimeout(() => { overlay.classList.add('show'); }, 10);
+        }
+
+        // 🔴 刪除確認視窗 (依照圖片樣式)
+        function showDeleteModal(item) {
+            const overlay = document.getElementById('custom-modal-overlay');
+            const box = overlay.querySelector('.modal-box');
+            
+            box.innerHTML = `
+                <div class="modal-icon-wrapper icon-delete">!</div>
+                <div class="modal-title">確認刪除</div>
+                <div class="modal-desc">刪除「${item.name}」？</div>
+                <div class="modal-btn-group">
+                    <button class="modal-btn btn-cancel" onclick="closeModal()">取消</button>
+                    <button class="modal-btn btn-confirm-delete" onclick="performDelete()">確定</button>
+                </div>
+            `;
+            overlay.style.display = 'flex';
+            setTimeout(() => { overlay.classList.add('show'); }, 10);
+        }
+
+        function closeModal() {
+            const overlay = document.getElementById('custom-modal-overlay');
+            overlay.classList.remove('show');
+            setTimeout(() => { overlay.style.display = 'none'; }, 300);
+        }
+
+        // 🔴 執行刪除 (遞迴搜尋並移除)
+        function performDelete() {
+            if (!ctxTargetItem) return;
+
+            // 定義一個遞迴函數來找並刪除
+            function removeItemRecursive(items, targetItem) {
+                for (let i = 0; i < items.length; i++) {
+                    if (items[i].name === targetItem.name && items[i].createdAt === targetItem.createdAt) {
+                        items.splice(i, 1);
+                        return true; // 刪除成功
+                    }
+                    if (items[i].children) {
+                        if (removeItemRecursive(items[i].children, targetItem)) return true;
+                    }
+                }
+                return false;
+            }
+
+            // 深拷貝目前的結構
+            let newItems = JSON.parse(JSON.stringify(cloudItems));
+            
+            const success = removeItemRecursive(newItems, ctxTargetItem);
+
+            if (success) {
+                const btn = document.querySelector('.btn-confirm-delete');
+                btn.innerText = "刪除中...";
+                btn.disabled = true;
+
+                db.collection('system').doc('files').update({
+                    items: newItems
+                }).then(() => {
+                    closeModal();
+                    showMsg("🗑️ 已成功刪除項目", "success");
+                }).catch(err => {
+                    console.error(err);
+                    showMsg("刪除失敗，請檢查權限", "error");
                     closeModal();
                 });
-            });
+            } else {
+                closeModal();
+                showMsg("找不到該項目，可能已被刪除", "error");
+            }
         }
 
-        function loadCurrentNotification() { db.collection("system").doc("announcement").get().then(d => { const t = (d.exists&&d.data().active)?d.data().text:""; document.getElementById("notifyText").value=t; document.getElementById("previewText").innerText=t||"(無)"; }); document.getElementById("notifyText").addEventListener("input", function(){ document.getElementById("previewText").innerText=this.value||"(無)"; }); }
-        
-        function postNotification() { 
-            const t=document.getElementById("notifyText").value.trim(); 
-            if(!t) return showModal('info', '提示', '請輸入公告內容', [], 'icon-red', '!', () => closeModal());
+        function toggleFavorite(e, path) {
+            if (e) e.stopPropagation();
+            const uid = auth.currentUser.uid;
             
-            db.collection("system").doc("announcement").set({text:t, active:true, timestamp:new Date()}).then(() => {
-                showModal('info', '系統提示', '已發布', [], 'icon-blue', '✅', () => closeModal());
-            }); 
+            if (userFavorites.includes(path)) {
+                userFavorites = userFavorites.filter(p => p !== path);
+                showModal("已移除", "此項目已從您的最愛清單中移除。", "error");
+            } else {
+                userFavorites.push(path);
+                showModal("成功加入", "已成功將此項目加入您的最愛清單 ⭐", "success");
+            }
+
+            if (e && e.target) {
+                if (e.target.classList.contains('active')) e.target.classList.remove('active');
+                else e.target.classList.add('active');
+            }
+            if (isViewFavoritesMode) refreshCurrentView();
+
+            db.collection("users").doc(uid).update({ favorites: userFavorites })
+              .catch(err => { db.collection("users").doc(uid).set({ favorites: userFavorites }, { merge: true }); });
         }
-        
-        function clearNotification() { 
-            showModal('confirm', '確認清除', '確定要清除並隱藏公告嗎？', [], 'icon-red', '!', () => {
-                db.collection("system").doc("announcement").set({text:"", active:false}).then(()=>{ 
-                    document.getElementById("notifyText").value=""; 
-                    document.getElementById("previewText").innerText="(無)"; 
-                    showModal('info', '系統提示', '已清除', [], 'icon-blue', '✅', () => closeModal());
-                }); 
+
+        function togglePin(e, path) {
+            if (e) e.stopPropagation();
+            const uid = auth.currentUser.uid;
+            
+            if (userPinned.includes(path)) {
+                userPinned = userPinned.filter(p => p !== path);
+                showModal("取消置頂", "此項目已恢復一般排序。", "error");
+            } else {
+                userPinned.push(path);
+                showModal("已置頂", "此項目將會固定在列表最上方 📌", "success");
+            }
+            refreshCurrentView();
+            db.collection("users").doc(uid).update({ pinned: userPinned })
+              .catch(err => { db.collection("users").doc(uid).set({ pinned: userPinned }, { merge: true }); });
+        }
+
+        function toggleFavoritesView() {
+            isViewFavoritesMode = true;
+            document.getElementById('searchInput').value = ''; 
+            document.querySelector('.nav-bar').classList.remove('hidden'); 
+            refreshCurrentView();
+        }
+
+        function exitFavoritesView() {
+            isViewFavoritesMode = false;
+            pathStack = []; 
+            document.getElementById("backBtn").onclick = goUp; 
+            refreshCurrentView();
+        }
+
+        // 🟢 修改：支援來自箭頭點擊的進入
+        function enterFolder(event, folderItem) { 
+            if(event) event.stopPropagation(); // 防止觸發選取
+            if(!folderItem && ctxTargetItem) folderItem = ctxTargetItem; // 右鍵開啟
+            
+            isViewFavoritesMode = false; 
+            pathStack.push(folderItem); 
+            updateUrl(); 
+            refreshCurrentView(); 
+        }
+
+        function goUp() { 
+            if (pathStack.length > 0) { 
+                pathStack.pop(); 
+                updateUrl(); 
+                refreshCurrentView(); 
+            } 
+        }
+
+        function jumpTo(index) { 
+            isViewFavoritesMode = false;
+            if (index === -1) { 
+                pathStack = []; 
+            } else { 
+                pathStack = pathStack.slice(0, index + 1); 
+            } 
+            updateUrl(); 
+            refreshCurrentView(); 
+        }
+
+        function updateBreadcrumb() {
+            const backBtn = document.getElementById("backBtn");
+            if (pathStack.length > 0) {
+                backBtn.classList.remove("hidden");
+                backBtn.onclick = goUp; 
+            } else {
+                backBtn.classList.add("hidden");
+            }
+            
+            let html = `<span class="breadcrumb-item" onclick="jumpTo(-1)">首頁</span>`;
+            pathStack.forEach((folder, index) => {
+                html += `<span class="breadcrumb-separator">/</span>`;
+                if (index === pathStack.length - 1) {
+                    html += `<span class="breadcrumb-current">${folder.name}</span>`;
+                } else {
+                    html += `<span class="breadcrumb-item" onclick="jumpTo(${index})">${folder.name}</span>`;
+                }
             });
+            document.getElementById("breadcrumb-container").innerHTML = html;
         }
-        
-        function switchTab(t) { document.querySelectorAll('.section').forEach(e=>e.classList.remove('active')); document.querySelectorAll('.tab').forEach(e=>e.classList.remove('active')); document.getElementById('sec-'+t).classList.add('active'); document.querySelector(`.tab[data-type="${t}"]`).classList.add('active'); }
+
+        let ctxTargetItem = null;
+        const ctxMenu = document.getElementById('context-menu');
+
+        document.addEventListener('click', () => {
+            ctxMenu.style.display = 'none';
+        });
+
+        function showContextMenu(e, item) {
+            e.preventDefault();
+            ctxTargetItem = item;
+            
+            // 選取當前右鍵的項目
+            const listItem = e.currentTarget;
+            if (listItem) selectItem(listItem, item);
+
+            const isFav = userFavorites.includes(item.path);
+            const isPin = userPinned.includes(item.path);
+            
+            document.getElementById('ctx-fav-text').innerHTML = isFav ? '<span>💔</span> 移除最愛' : '<span>⭐</span> 加入最愛';
+            document.getElementById('ctx-pin-text').innerHTML = isPin ? '<span>📍</span> 取消置頂' : '<span>📌</span> 置頂項目';
+
+            let x = e.pageX;
+            let y = e.pageY;
+            const menuWidth = 200;
+            const menuHeight = 250; 
+
+            if (x + menuWidth > window.innerWidth) x -= menuWidth;
+            if (y + menuHeight > window.innerHeight) y -= menuHeight;
+
+            ctxMenu.style.left = `${x}px`;
+            ctxMenu.style.top = `${y}px`;
+            ctxMenu.style.display = 'flex';
+        }
+
+        function handleCtxAction(action) {
+            if (!ctxTargetItem) return;
+
+            if (action === 'open') {
+                if (ctxTargetItem.type === 'folder') {
+                    enterFolder(null, ctxTargetItem);
+                } else {
+                    window.open(ctxTargetItem.path, '_blank');
+                }
+            } 
+            else if (action === 'copy') {
+                navigator.clipboard.writeText(ctxTargetItem.path).then(() => {
+                    showMsg("📋 連結已複製到剪貼簿", "success");
+                }).catch(() => {
+                    showMsg("複製失敗，請手動複製", "error");
+                });
+            } 
+            else if (action === 'fav') {
+                toggleFavorite(null, ctxTargetItem.path);
+            } 
+            else if (action === 'pin') {
+                togglePin(null, ctxTargetItem.path);
+            }
+            else if (action === 'info') {
+                showFileDetails(ctxTargetItem);
+            }
+            // 🔴 新增刪除動作
+            else if (action === 'delete') {
+                showDeleteModal(ctxTargetItem);
+            }
+        }
+
+        function showFileDetails(item) {
+            const size = item.size ? item.size : '<span style="color:var(--text-sub); opacity: 0.7;">未知</span>';
+            let date = '<span style="color:var(--text-sub); opacity: 0.7;">未知</span>';
+            
+            if (item.createdAt) {
+                if (item.createdAt.seconds) {
+                    const d = new Date(item.createdAt.seconds * 1000);
+                    date = d.getFullYear() + '/' + (d.getMonth() + 1).toString().padStart(2, '0') + '/' + d.getDate().toString().padStart(2, '0');
+                } 
+                else {
+                    date = item.createdAt;
+                }
+            }
+
+            const typeMap = { 'folder': '資料夾', 'file': '檔案' };
+            
+            const html = `
+                <div style="padding: 0 10px;">
+                    <div class="detail-row"><span class="detail-label">名稱</span> <span class="detail-value">${item.name}</span></div>
+                    <div class="detail-row"><span class="detail-label">類型</span> <span class="detail-value">${typeMap[item.type] || '未知'}</span></div>
+                    <div class="detail-row"><span class="detail-label">大小</span> <span class="detail-value">${size}</span></div>
+                    <div class="detail-row"><span class="detail-label">建立日期</span> <span class="detail-value">${date}</span></div>
+                    <div class="detail-row"><span class="detail-label">路徑</span> <div class="detail-value" style="word-break:break-all; font-size:12px;">${item.path}</div></div>
+                    ${item.note ? `<div class="detail-row"><span class="detail-label">備註</span> <span class="detail-value">${item.note}</span></div>` : ''}
+                </div>
+            `;
+            
+            showModal("詳細資訊", html, ""); 
+        }
+
+        function updateUrl() {
+            const pathNames = pathStack.map(item => item.name);
+            const pathStr = pathNames.join('/'); 
+            
+            const currentUrlParams = new URLSearchParams(window.location.search);
+            const currentPath = currentUrlParams.get('path') || '';
+
+            if (pathStr !== currentPath) {
+                const newUrl = pathStr ? `?path=${encodeURIComponent(pathStr)}` : window.location.pathname;
+                history.pushState({ path: pathStr }, '', newUrl);
+            }
+        }
+
+        function restorePathFromUrl() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const pathParam = urlParams.get('path');
+            
+            if (!pathParam) {
+                pathStack = []; 
+                refreshCurrentView();
+                return;
+            }
+
+            const folderNames = decodeURIComponent(pathParam).split('/');
+            let currentLevelItems = cloudItems; 
+            let newStack = [];
+            let isValidPath = true;
+
+            for (let name of folderNames) {
+                const foundFolder = currentLevelItems.find(item => item.type === 'folder' && item.name === name);
+                
+                if (foundFolder) {
+                    newStack.push(foundFolder);
+                    currentLevelItems = foundFolder.children || [];
+                } else {
+                    console.warn(`找不到資料夾: ${name}，可能已被刪除或路徑錯誤`);
+                    isValidPath = false;
+                    break; 
+                }
+            }
+
+            if (isValidPath) {
+                pathStack = newStack;
+            } else {
+                pathStack = []; 
+                history.replaceState(null, '', window.location.pathname); 
+            }
+            refreshCurrentView();
+        }
+
+        window.onpopstate = function(event) {
+            restorePathFromUrl();
+        };
+
     </script>
 </body>
 </html>
